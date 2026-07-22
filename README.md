@@ -7,16 +7,22 @@
 本目录只提供 `requirements.txt` 和可选初始化脚本，不会自动创建环境。
 
 ```bash
-python3.10 -m venv rdp_deploy_venv
+python3.12 -m venv rdp_deploy_venv
 source rdp_deploy_venv/bin/activate
 pip install --upgrade pip
 pip install -r RDP_deploy/requirements.txt
 ```
 
-每次运行前先加载 ROS2 和项目路径：
+部署电脑目标环境是 Ubuntu 24.04 + ROS2 Jazzy。ROS2 相关 Python 包通过 apt 安装，不通过 pip 安装：
 
 ```bash
-source /opt/ros/humble/setup.bash
+sudo apt install ros-jazzy-cv-bridge ros-jazzy-message-filters
+```
+
+每次运行前先加载 ROS2 Jazzy 和项目路径：
+
+```bash
+source /opt/ros/jazzy/setup.bash
 source rdp_deploy_venv/bin/activate
 export PYTHONPATH=$PWD/reactive_diffusion_policy:$PWD/RDP_deploy:$PYTHONPATH
 ```
@@ -46,4 +52,4 @@ python RDP_deploy/scripts/collect_sensor_stream.py --config RDP_deploy/configs/d
 - 只读 robot server：只调用 `/get_current_robot_states` 和 `/get_current_tcp/{side}`。
 - 不实现 `/move_tcp`、`/move_gripper` 等运动接口。
 - 采集结果默认保存到 `RDP_deploy/logs`。
-- ROS2 Python 包来自系统 ROS2 Humble，不通过 pip 安装。
+- ROS2 Python 包来自系统 ROS2 Jazzy，不通过 pip 安装。

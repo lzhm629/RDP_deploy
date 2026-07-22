@@ -33,7 +33,7 @@ def main() -> int:
     if failed:
         print("")
         print("Missing imports usually mean one of these is needed:")
-        print("  source /opt/ros/humble/setup.bash")
+        print("  source /opt/ros/jazzy/setup.bash")
         print("  source rdp_deploy_venv/bin/activate")
         print("  export PYTHONPATH=$PWD/reactive_diffusion_policy:$PWD/RDP_deploy:$PYTHONPATH")
         return 1
