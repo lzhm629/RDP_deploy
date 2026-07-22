@@ -8,7 +8,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-RIZON_ID = "Rizon4s-063231"
+RIZON_ID = "Rizon4s-063586"
 
 RIZON_MAX_CONTACT_FORCE = 30
 RIZON_MAX_CONTACT_TORQUE = 5

@@ -74,7 +74,7 @@ def _check_robot(cfg) -> dict:
     result = {
         "enabled": bool(cfg.publishers.robot_state.get("enabled", False)),
         "backend": str(cfg.robot.get("backend", "forcemimic_rizon")),
-        "robot_id": str(cfg.robot.get("robot_id", "Rizon4s-063231")),
+        "robot_id": str(cfg.robot.get("robot_id", "Rizon4s-063586")),
         "tool_name": str(cfg.robot.get("tool_name", "xense_force")),
         "gripper_id": str(cfg.robot.get("gripper_id", "d254505bfaaa")),
     }

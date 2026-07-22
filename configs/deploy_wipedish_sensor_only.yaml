@@ -12,7 +12,7 @@ runtime:
 
 robot:
   backend: forcemimic_rizon
-  robot_id: Rizon4s-063231
+  robot_id: Rizon4s-063586
   tool_name: xense_force
   gripper_id: d254505bfaaa
   gripper_name: Xense

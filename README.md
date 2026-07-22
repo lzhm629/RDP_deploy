@@ -58,7 +58,7 @@ configs/deploy_wipedish_sensor_only.yaml
 
 重点检查这些字段：
 
-- `robot.robot_id`：Rizon 机械臂 ID，默认 `Rizon4s-063231`。
+- `robot.robot_id`：Rizon 机械臂 ID，默认 `Rizon4s-063586`。
 - `robot.tool_name`：Rizon 工具名，默认 `xense_force`。
 - `robot.gripper_id`、`robot.gripper_name`：Xense 夹爪配置。
 - `publishers.realsense.cameras`：RealSense 序列号和发布 topic 名称。
