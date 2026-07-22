@@ -17,8 +17,8 @@ pyrealsense2
 # geometry_msgs
 #
 # Optional, install from your Xense SDK package if using Xense publisher:
-# xensesdk
+xensesdk
 #
 # Required for robot/gripper publisher, install from the Flexiv/Xense stack:
-# flexivrdk
-# r3kit
+flexivrdk
+r3kit
