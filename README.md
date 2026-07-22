@@ -8,6 +8,7 @@
 - 从 ROS2 topics 同步采集 observation。
 - 保存单帧 snapshot 或连续 stream 数据，方便上机前验证。
 - 不加载模型，不发送任何机械臂运动指令。
+- 机械臂连接逻辑已按 Forcemimic 的 Rizon 配置方式迁移到本目录内。
 
 ## 1. 环境
 
@@ -40,7 +41,12 @@ ROS2 Python 包通过 apt 安装，不通过 pip 安装：
 sudo apt install ros-jazzy-message-filters
 ```
 
-如果启用 Xense，需要根据你的 Xense SDK 安装方式额外安装 `xensesdk`。
+如果启用硬件发布节点，还需要在部署电脑安装硬件 SDK：
+
+- RealSense：系统 librealsense 驱动，以及 Python 包 `pyrealsense2`。
+- Xense 传感器：`xensesdk`。
+- Rizon 机械臂：Flexiv RDK Python 包 `flexivrdk`。
+- Xense 夹爪：`r3kit`，或把 r3kit 的 Python 包根目录加入 `PYTHONPATH`。
 
 ## 2. 配置
 
@@ -52,15 +58,16 @@ configs/deploy_wipedish_sensor_only.yaml
 
 重点检查这些字段：
 
-- `robot.server_ip`、`robot.server_port`：机器人 HTTP 状态服务地址。
+- `robot.robot_id`：Rizon 机械臂 ID，默认 `Rizon4s-063231`。
+- `robot.tool_name`：Rizon 工具名，默认 `xense_force`。
+- `robot.gripper_id`、`robot.gripper_name`：Xense 夹爪配置。
 - `publishers.realsense.cameras`：RealSense 序列号和发布 topic 名称。
 - `publishers.xense.sensors`：Xense 序列号和发布 topic 名称。
 - `sensors.subscribe_topics`：同步采集器订阅的 topic 列表。
 
 默认配置会发布并采集：
 
-- `/external_camera/color/image_raw`
-- `/left_wrist_camera/color/image_raw`
+- `/D405/color/image_raw`
 - `/left_gripper_camera_1/color/image_raw`
 - `/left_gripper_camera_1/marker_offset/information`
 - `/left_gripper_camera_1/force_resultant`
@@ -75,7 +82,7 @@ configs/deploy_wipedish_sensor_only.yaml
 
 ```bash
 python scripts/check_imports.py
-python scripts/check_robot_server.py --config configs/deploy_wipedish_sensor_only.yaml
+python scripts/check_robot_connection.py --config configs/deploy_wipedish_sensor_only.yaml
 python scripts/check_publisher_config.py --config configs/deploy_wipedish_sensor_only.yaml
 ```
 
@@ -119,13 +126,12 @@ logs/
 
 ## 5. 安全边界
 
-当前代码只读机器人状态。
+当前采集链路只读机器人状态，不发送动作指令。
 
-只会调用：
+机器人状态发布使用本目录内的：
 
 ```text
-GET /get_current_robot_states
-GET /get_current_tcp/{side}
+rdp_deploy/robots/rizon.py 中的 Rizon(tool_name="xense_force")
 ```
 
-不会调用 `/move_tcp`、`/move_gripper` 等运动接口。
+不会调用 `/move_tcp`、`/move_gripper` 等 HTTP 运动接口，也不会在 `RDP_deploy` 内实现动作下发。

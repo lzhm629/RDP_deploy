@@ -2,17 +2,15 @@ from __future__ import annotations
 
 import time
 
-import requests
+from rdp_deploy.clients.forcemimic_robot_client import forcemimic_robot_client_from_config
 
 
 class RobotStatePublisher:
     def __init__(
         self,
-        robot_server_ip: str,
-        robot_server_port: int,
+        cfg,
         fps: float = 120,
         bimanual: bool = False,
-        request_timeout_sec: float = 0.05,
     ):
         from geometry_msgs.msg import PoseStamped, TwistStamped, WrenchStamped
         from rclpy.node import Node
@@ -22,11 +20,8 @@ class RobotStatePublisher:
             pass
 
         self.node = _Node("rdp_deploy_robot_state_publisher")
-        self.robot_server_ip = robot_server_ip
-        self.robot_server_port = int(robot_server_port)
-        self.request_timeout_sec = float(request_timeout_sec)
+        self.client = forcemimic_robot_client_from_config(cfg)
         self.bimanual = bool(bimanual)
-        self.session = requests.Session()
         self.frame_count = 0
         self.prev_time = time.time()
 
@@ -43,19 +38,17 @@ class RobotStatePublisher:
         self.timer = self.node.create_timer(1.0 / float(fps), self._timer_callback)
 
     @property
-    def base_url(self) -> str:
-        return f"http://{self.robot_server_ip}:{self.robot_server_port}"
+    def source_name(self) -> str:
+        return "Forcemimic Rizon"
 
     def destroy_node(self):
-        self.node.destroy_node()
+        try:
+            self.client.close()
+        finally:
+            self.node.destroy_node()
 
     def _get_states(self) -> dict:
-        response = self.session.get(
-            f"{self.base_url}/get_current_robot_states",
-            timeout=self.request_timeout_sec,
-        )
-        response.raise_for_status()
-        return dict(response.json())
+        return self.client.get_current_robot_states()
 
     def _publish_side(self, side: str, states: dict, stamp):
         from geometry_msgs.msg import Point, PoseStamped, TwistStamped, WrenchStamped

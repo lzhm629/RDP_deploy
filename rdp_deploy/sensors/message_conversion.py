@@ -124,8 +124,7 @@ def convert_topic_dict_to_observation(
         obs["right_robot_gripper_force"] = force
 
     image_key_by_topic_part = {
-        "external_camera": "external_img",
-        "left_wrist_camera": "left_wrist_img",
+        "D405": "agentview_image",
         "right_wrist_camera": "right_wrist_img",
         "left_gripper_camera_1": "left_gripper1_img",
         "left_gripper_camera_2": "left_gripper2_img",

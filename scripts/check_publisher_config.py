@@ -5,7 +5,7 @@ import json
 
 import _bootstrap  # noqa: F401
 
-from rdp_deploy.clients.robot_http_client import robot_client_from_config
+from rdp_deploy.clients.forcemimic_robot_client import forcemimic_robot_client_from_config
 from rdp_deploy.config import load_config
 
 
@@ -70,6 +70,32 @@ def _check_xense(cfg) -> dict:
     return result
 
 
+def _check_robot(cfg) -> dict:
+    result = {
+        "enabled": bool(cfg.publishers.robot_state.get("enabled", False)),
+        "backend": str(cfg.robot.get("backend", "forcemimic_rizon")),
+        "robot_id": str(cfg.robot.get("robot_id", "Rizon4s-063231")),
+        "tool_name": str(cfg.robot.get("tool_name", "xense_force")),
+        "gripper_id": str(cfg.robot.get("gripper_id", "d254505bfaaa")),
+    }
+    if not result["enabled"]:
+        return result
+
+    client = None
+    try:
+        client = forcemimic_robot_client_from_config(cfg)
+        ok, message = client.ping()
+    except Exception as exc:  # noqa: BLE001
+        ok = False
+        message = f"{type(exc).__name__}: {exc}"
+    finally:
+        if client is not None:
+            client.close()
+    result["connection_ok"] = ok
+    result["message"] = message
+    return result
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
@@ -110,9 +136,7 @@ def main() -> int:
     subscriptions_without_configured_publisher = sorted(set(subscribe_topics) - set(enabled_publish_prefixes))
 
     report = {
-        "robot_state": {
-            "enabled": bool(cfg.publishers.robot_state.get("enabled", False)),
-        },
+        "robot_state": _check_robot(cfg),
         "realsense": _check_realsense_serials(cfg),
         "xense": _check_xense(cfg),
         "subscribe_topics": [dict(item) for item in cfg.sensors.get("subscribe_topics", [])],
@@ -122,16 +146,10 @@ def main() -> int:
         },
     }
 
-    if report["robot_state"]["enabled"]:
-        client = robot_client_from_config(cfg)
-        ok, message = client.ping()
-        report["robot_state"]["server_ok"] = ok
-        report["robot_state"]["message"] = message
-
     print(json.dumps(report, indent=2, ensure_ascii=False))
 
     failed = False
-    if report["robot_state"].get("enabled") and not report["robot_state"].get("server_ok"):
+    if report["robot_state"].get("enabled") and not report["robot_state"].get("connection_ok"):
         failed = True
     if report["realsense"].get("enabled"):
         failed = failed or not report["realsense"].get("import_ok")

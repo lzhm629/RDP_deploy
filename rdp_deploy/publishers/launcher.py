@@ -46,11 +46,9 @@ def build_publishers(cfg) -> PublisherStack:
 
     if bool(cfg.publishers.robot_state.get("enabled", False)):
         nodes.append(RobotStatePublisher(
-            robot_server_ip=str(cfg.robot.server_ip),
-            robot_server_port=int(cfg.robot.server_port),
+            cfg=cfg,
             fps=float(cfg.publishers.robot_state.get("fps", cfg.robot.get("publish_fps", 120))),
             bimanual=bool(cfg.robot.get("bimanual", False)),
-            request_timeout_sec=float(cfg.publishers.robot_state.get("request_timeout_sec", 0.05)),
         ))
 
     if bool(cfg.publishers.realsense.get("enabled", False)):

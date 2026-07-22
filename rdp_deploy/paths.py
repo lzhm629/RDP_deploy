@@ -6,7 +6,7 @@ def deploy_root() -> Path:
 
 
 def repo_root() -> Path:
-    return deploy_root().parent
+    return deploy_root()
 
 
 def resolve_repo_path(path: str | Path) -> Path:

@@ -7,7 +7,6 @@ import _bootstrap  # noqa: F401
 MODULES = [
     "numpy",
     "cv2",
-    "requests",
     "omegaconf",
     "loguru",
     "rdp_deploy",
@@ -34,7 +33,7 @@ def main() -> int:
         print("Missing imports usually mean one of these is needed:")
         print("  source /opt/ros/jazzy/setup.bash")
         print("  source rdp_deploy_venv/bin/activate")
-        print("  export PYTHONPATH=$PWD/RDP_deploy:$PYTHONPATH")
+        print("  export PYTHONPATH=$PWD:$PYTHONPATH")
         return 1
     return 0
 

@@ -1,6 +1,0 @@
-robot:
-  server_ip: 192.168.2.187
-  server_port: 8092
-  arm: left
-  bimanual: false
-  request_timeout_sec: 3.0

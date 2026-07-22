@@ -3,12 +3,11 @@ from __future__ import annotations
 import threading
 import time
 
-from rdp_deploy.clients.device_mapping_client import device_mapping_client_from_config
 from rdp_deploy.config import resolve_config_paths
 from rdp_deploy.diagnostics.latency_monitor import LatencyMonitor
 from rdp_deploy.sensors.message_conversion import convert_topic_dict_to_observation
 from rdp_deploy.sensors.observation_buffer import ObservationBuffer
-from rdp_deploy.sensors.topic_mapping import get_topic_and_type, get_topic_and_type_from_config
+from rdp_deploy.sensors.topic_mapping import get_topic_and_type_from_config
 
 
 def create_sensor_node(cfg):
@@ -17,11 +16,7 @@ def create_sensor_node(cfg):
     from rclpy.node import Node
 
     resolved_cfg = resolve_config_paths(cfg)
-    if bool(resolved_cfg.device_mapping.get("enabled", False)):
-        mapping = device_mapping_client_from_config(resolved_cfg).get_mapping_json()
-        subs_name_type = get_topic_and_type(mapping)
-    else:
-        subs_name_type = get_topic_and_type_from_config(list(resolved_cfg.sensors.subscribe_topics))
+    subs_name_type = get_topic_and_type_from_config(list(resolved_cfg.sensors.subscribe_topics))
 
     class SensorOnlyRosNode(Node):
         def __init__(self):

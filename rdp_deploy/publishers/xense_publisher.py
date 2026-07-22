@@ -12,6 +12,7 @@ class XensePublisher:
         self,
         sensor_name: str,
         serial_number: str,
+        mac_address: str | None = None,
         cam_id: int | None = None,
         config_path: str | None = None,
         use_gpu: bool = True,
@@ -46,10 +47,20 @@ class XensePublisher:
         kwargs = {"use_gpu": bool(use_gpu)}
         if config_path:
             kwargs["config_path"] = config_path
-        if cam_id is not None:
-            self.sensor = Sensor.create(serial_number, cam_id=int(cam_id), **kwargs)
-        else:
-            self.sensor = Sensor.create(serial_number, **kwargs)
+        if mac_address:
+            kwargs["mac_addr"] = mac_address
+        try:
+            if cam_id is not None:
+                self.sensor = Sensor.create(serial_number, cam_id=int(cam_id), **kwargs)
+            else:
+                self.sensor = Sensor.create(serial_number, **kwargs)
+        except TypeError:
+            if mac_address:
+                self.sensor = Sensor.create(serial_number, mac_addr=mac_address)
+            elif config_path:
+                self.sensor = Sensor.create(serial_number, config_path=config_path)
+            else:
+                self.sensor = Sensor.create(serial_number)
 
         self.output_types = []
         if self.publish_rectify:

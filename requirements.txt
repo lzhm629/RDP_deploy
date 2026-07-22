@@ -2,9 +2,9 @@ numpy==1.26.4
 opencv-python
 pyyaml
 omegaconf
-requests
 loguru
 transforms3d
+scipy
 setuptools
 wheel
 pyrealsense2
@@ -18,3 +18,7 @@ pyrealsense2
 #
 # Optional, install from your Xense SDK package if using Xense publisher:
 # xensesdk
+#
+# Required for robot/gripper publisher, install from the Flexiv/Xense stack:
+# flexivrdk
+# r3kit
