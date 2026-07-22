@@ -1,23 +1,13 @@
 numpy==1.26.4
 opencv-python
-scipy
 pyyaml
 omegaconf
-hydra-core
 requests
-pydantic>=2,<3
 loguru
-tqdm
-psutil
-dill
 transforms3d
-pyinstrument
-py_cli_interaction
-fastapi
-uvicorn
-open3d
 setuptools
 wheel
+pyrealsense2
 
 # Provided by system ROS2 Jazzy after:
 #   source /opt/ros/jazzy/setup.bash
@@ -25,4 +15,6 @@ wheel
 # message_filters
 # sensor_msgs
 # geometry_msgs
-# cv_bridge
+#
+# Optional, install from your Xense SDK package if using Xense publisher:
+# xensesdk

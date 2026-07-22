@@ -14,6 +14,10 @@ def main() -> int:
     args = parser.parse_args()
 
     cfg = load_config(args.config)
+    if not bool(cfg.device_mapping.get("enabled", False)):
+        print("Device mapping check skipped: device_mapping.enabled is false.")
+        return 0
+
     client = device_mapping_client_from_config(cfg)
     ok, message = client.ping()
     print(f"Device mapping server: {message}")

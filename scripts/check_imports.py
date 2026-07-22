@@ -11,12 +11,11 @@ MODULES = [
     "omegaconf",
     "loguru",
     "rdp_deploy",
-    "reactive_diffusion_policy",
     "rclpy",
     "message_filters",
     "sensor_msgs",
     "geometry_msgs",
-    "cv_bridge",
+    "std_msgs",
 ]
 
 
@@ -35,7 +34,7 @@ def main() -> int:
         print("Missing imports usually mean one of these is needed:")
         print("  source /opt/ros/jazzy/setup.bash")
         print("  source rdp_deploy_venv/bin/activate")
-        print("  export PYTHONPATH=$PWD/reactive_diffusion_policy:$PWD/RDP_deploy:$PYTHONPATH")
+        print("  export PYTHONPATH=$PWD/RDP_deploy:$PYTHONPATH")
         return 1
     return 0
 

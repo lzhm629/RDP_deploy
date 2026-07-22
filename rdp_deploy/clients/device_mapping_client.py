@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
-
 import requests
 
 
@@ -20,11 +18,6 @@ class DeviceMappingClient:
         response = requests.get(f"{self.base_url}/get_mapping", timeout=self.timeout_sec)
         response.raise_for_status()
         return dict(response.json())
-
-    def get_mapping_model(self) -> Any:
-        from reactive_diffusion_policy.real_world.device_mapping.device_mapping_server import DeviceToTopic
-
-        return DeviceToTopic.model_validate(self.get_mapping_json())
 
     def ping(self) -> tuple[bool, str]:
         try:

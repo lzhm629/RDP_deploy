@@ -16,15 +16,13 @@ robot:
   arm: left
   bimanual: false
   request_timeout_sec: 3.0
+  publish_fps: 120
 
 device_mapping:
+  enabled: false
   server_ip: 127.0.0.1
   server_port: 8062
   request_timeout_sec: 3.0
-
-transforms:
-  enabled: true
-  calibration_path: reactive_diffusion_policy/data/calibration/v6
 
 data_processing:
   mode: single_arm_two_realsense_two_tactile
@@ -32,29 +30,76 @@ data_processing:
   use_6d_rotation: true
   marker_dimension: 2
   debug: false
-  pca_param_dict:
-    GelSight:
-      n_components: 15
-      normalize: false
-      mode: Eval
-      store: false
-      transformation_matrix_path: reactive_diffusion_policy/data/PCA_Transform_GelSight/pca_transform_matrix.npy
-      mean_matrix_path: reactive_diffusion_policy/data/PCA_Transform_GelSight/pca_mean_matrix.npy
-    McTac:
-      n_components: 15
-      normalize: false
-      mode: Eval
-      store: false
-      transformation_matrix_path: reactive_diffusion_policy/data/PCA_Transform_McTAC_v1/pca_transform_matrix.npy
-      mean_matrix_path: reactive_diffusion_policy/data/PCA_Transform_McTAC_v1/pca_mean_matrix.npy
+
+publishers:
+  robot_state:
+    enabled: true
+    fps: ${robot.publish_fps}
+    request_timeout_sec: 0.05
+  realsense:
+    enabled: true
+    cameras:
+      - camera_serial_number: "036422060422"
+        camera_type: D400
+        camera_name: external_camera
+        rgb_resolution: [640, 480]
+        fps: 24
+        stream_fps: 30
+        exposure: 120
+        white_balance: 5900
+      - camera_serial_number: "135122079769"
+        camera_type: D400
+        camera_name: left_wrist_camera
+        rgb_resolution: [640, 480]
+        fps: 24
+        stream_fps: 30
+        exposure: 120
+        white_balance: 5900
+  xense:
+    enabled: true
+    sensors:
+      - sensor_name: left_gripper_camera_1
+        serial_number: OG000678
+        cam_id: null
+        config_path: null
+        use_gpu: true
+        fps: 24
+        publish_rectify: true
+        publish_marker2d: true
+        publish_force_resultant: true
+        publish_timestamp: true
 
 sensors:
+  subscribe_topics:
+    - name: /external_camera/color/image_raw
+      type: sensor_msgs/msg/Image
+    - name: /left_wrist_camera/color/image_raw
+      type: sensor_msgs/msg/Image
+    - name: /left_gripper_camera_1/color/image_raw
+      type: sensor_msgs/msg/Image
+    - name: /left_gripper_camera_1/marker_offset/information
+      type: sensor_msgs/msg/PointCloud2
+    - name: /left_gripper_camera_1/force_resultant
+      type: geometry_msgs/msg/WrenchStamped
+    - name: /left_tcp_pose
+      type: geometry_msgs/msg/PoseStamped
+    - name: /left_gripper_state
+      type: sensor_msgs/msg/JointState
+    - name: /left_tcp_vel
+      type: geometry_msgs/msg/TwistStamped
+    - name: /left_tcp_wrench
+      type: geometry_msgs/msg/WrenchStamped
   required_observation_keys:
     - timestamp
     - left_robot_tcp_pose
     - left_robot_gripper_width
     - left_robot_tcp_wrench
   expected_ros_topics:
+    - /external_camera/color/image_raw
+    - /left_wrist_camera/color/image_raw
+    - /left_gripper_camera_1/color/image_raw
+    - /left_gripper_camera_1/marker_offset/information
+    - /left_gripper_camera_1/force_resultant
     - /left_tcp_pose
     - /left_gripper_state
     - /left_tcp_vel

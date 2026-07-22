@@ -10,9 +10,9 @@ from rdp_deploy.diagnostics.ros_topic_checker import compare_topics, get_ros_top
 
 
 def _topics_from_device_mapping(cfg) -> list[str]:
-    from reactive_diffusion_policy.real_world.device_mapping.device_mapping_utils import get_topic_and_type
+    from rdp_deploy.sensors.topic_mapping import get_topic_and_type
 
-    mapping = device_mapping_client_from_config(cfg).get_mapping_model()
+    mapping = device_mapping_client_from_config(cfg).get_mapping_json()
     return [topic for topic, _msg_type in get_topic_and_type(mapping)]
 
 
@@ -26,7 +26,7 @@ def main() -> int:
     available = get_ros_topics()
 
     expected = list(cfg.sensors.get("expected_ros_topics", []))
-    if not args.no_device_mapping:
+    if not args.no_device_mapping and bool(cfg.device_mapping.get("enabled", False)):
         expected = sorted(set(expected + _topics_from_device_mapping(cfg)))
 
     report = compare_topics(available, expected)

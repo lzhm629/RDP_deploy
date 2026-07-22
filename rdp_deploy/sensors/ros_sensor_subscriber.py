@@ -2,58 +2,13 @@ from __future__ import annotations
 
 import threading
 import time
-from typing import Any
-
-from omegaconf import OmegaConf
 
 from rdp_deploy.clients.device_mapping_client import device_mapping_client_from_config
 from rdp_deploy.config import resolve_config_paths
 from rdp_deploy.diagnostics.latency_monitor import LatencyMonitor
+from rdp_deploy.sensors.message_conversion import convert_topic_dict_to_observation
 from rdp_deploy.sensors.observation_buffer import ObservationBuffer
-
-
-def _topic_roles(subs_name_type: list[tuple[str, Any]]) -> dict[str, list[str | None]]:
-    roles: dict[str, list[str | None]] = {
-        "depth_camera_point_cloud": [None, None, None],
-        "depth_camera_rgb": [None, None, None],
-        "tactile_camera_rgb": [None, None, None, None],
-        "tactile_camera_marker": [None, None, None, None],
-    }
-
-    for topic, _msg_type in subs_name_type:
-        if "depth/points" in topic:
-            if "external_camera" in topic:
-                roles["depth_camera_point_cloud"][0] = topic
-            elif "left_wrist_camera" in topic:
-                roles["depth_camera_point_cloud"][1] = topic
-            elif "right_wrist_camera" in topic:
-                roles["depth_camera_point_cloud"][2] = topic
-        elif "color/image_raw" in topic:
-            if "gripper_camera" in topic:
-                if "left_gripper_camera_1" in topic:
-                    roles["tactile_camera_rgb"][0] = topic
-                elif "left_gripper_camera_2" in topic:
-                    roles["tactile_camera_rgb"][1] = topic
-                elif "right_gripper_camera_1" in topic:
-                    roles["tactile_camera_rgb"][2] = topic
-                elif "right_gripper_camera_2" in topic:
-                    roles["tactile_camera_rgb"][3] = topic
-            elif "external_camera" in topic:
-                roles["depth_camera_rgb"][0] = topic
-            elif "left_wrist_camera" in topic:
-                roles["depth_camera_rgb"][1] = topic
-            elif "right_wrist_camera" in topic:
-                roles["depth_camera_rgb"][2] = topic
-        elif "marker_offset/information" in topic:
-            if "left_gripper_camera_1" in topic:
-                roles["tactile_camera_marker"][0] = topic
-            elif "left_gripper_camera_2" in topic:
-                roles["tactile_camera_marker"][1] = topic
-            elif "right_gripper_camera_1" in topic:
-                roles["tactile_camera_marker"][2] = topic
-            elif "right_gripper_camera_2" in topic:
-                roles["tactile_camera_marker"][3] = topic
-    return roles
+from rdp_deploy.sensors.topic_mapping import get_topic_and_type, get_topic_and_type_from_config
 
 
 def create_sensor_node(cfg):
@@ -61,15 +16,12 @@ def create_sensor_node(cfg):
     from message_filters import ApproximateTimeSynchronizer, Subscriber
     from rclpy.node import Node
 
-    from reactive_diffusion_policy.real_world.device_mapping.device_mapping_utils import get_topic_and_type
-    from reactive_diffusion_policy.real_world.post_process_utils import DataPostProcessingManager
-    from reactive_diffusion_policy.real_world.real_world_transforms import RealWorldTransforms
-    from reactive_diffusion_policy.real_world.ros_data_converter import ROS2DataConverter
-
     resolved_cfg = resolve_config_paths(cfg)
-    mapping = device_mapping_client_from_config(resolved_cfg).get_mapping_model()
-    subs_name_type = get_topic_and_type(mapping)
-    roles = _topic_roles(subs_name_type)
+    if bool(resolved_cfg.device_mapping.get("enabled", False)):
+        mapping = device_mapping_client_from_config(resolved_cfg).get_mapping_json()
+        subs_name_type = get_topic_and_type(mapping)
+    else:
+        subs_name_type = get_topic_and_type_from_config(list(resolved_cfg.sensors.subscribe_topics))
 
     class SensorOnlyRosNode(Node):
         def __init__(self):
@@ -80,32 +32,8 @@ def create_sensor_node(cfg):
             self.callback_errors: list[str] = []
             self.frame_count = 0
             self.started_at = time.time()
-
-            if bool(resolved_cfg.transforms.get("enabled", False)):
-                transform_option = OmegaConf.create({
-                    "calibration_path": resolved_cfg.transforms.calibration_path
-                })
-            else:
-                transform_option = None
-            transforms = RealWorldTransforms(option=transform_option)
-
-            processing_kwargs = OmegaConf.to_container(resolved_cfg.data_processing, resolve=True)
-            processing_kwargs.pop("debug", None)
-            processing_debug = bool(resolved_cfg.data_processing.get("debug", False))
-            self.post_processor = DataPostProcessingManager(
-                transforms=transforms,
-                debug=processing_debug,
-                **processing_kwargs,
-            )
-            self.converter = ROS2DataConverter(
-                transforms=transforms,
-                depth_camera_point_cloud_topic_names=roles["depth_camera_point_cloud"],
-                depth_camera_rgb_topic_names=roles["depth_camera_rgb"],
-                tactile_camera_rgb_topic_names=roles["tactile_camera_rgb"],
-                tactile_camera_marker_topic_names=roles["tactile_camera_marker"],
-                tactile_camera_marker_dimension=int(resolved_cfg.data_processing.get("marker_dimension", 2)),
-                debug=processing_debug,
-            )
+            self.image_resize_shape = tuple(resolved_cfg.data_processing.get("image_resize_shape", [320, 240]))
+            self.marker_dimension = int(resolved_cfg.data_processing.get("marker_dimension", 2))
 
             self.subscribers = [
                 Subscriber(self, msg_type, topic)
@@ -125,8 +53,11 @@ def create_sensor_node(cfg):
                     self.topic_names[i]: msg
                     for i, msg in enumerate(msgs)
                 }
-                sensor_msg = self.converter.convert_all_data(topic_dict)
-                obs = self.post_processor.convert_sensor_msg_to_obs_dict(sensor_msg)
+                obs = convert_topic_dict_to_observation(
+                    topic_dict,
+                    image_resize_shape=self.image_resize_shape,
+                    marker_dimension=self.marker_dimension,
+                )
                 self.buffer.push(obs)
                 self.latency_monitor.add_observation(obs)
                 self.frame_count += 1
