@@ -11,7 +11,7 @@ from rdp_deploy.robots.rizon import RIZON_ID, Rizon
 @dataclass
 class ForcemimicRobotClient:
     robot_id: str = RIZON_ID
-    tool_name: str = "xense_force"
+    tool_name: str = "hapticexoteleop"
     gripper_id: str = "d254505bfaaa"
     gripper_name: str = "Xense"
     gripper_block: bool = False
@@ -87,7 +87,7 @@ def forcemimic_robot_client_from_config(cfg) -> ForcemimicRobotClient:
     robot_cfg = cfg.robot
     return ForcemimicRobotClient(
         robot_id=str(robot_cfg.get("robot_id", RIZON_ID)),
-        tool_name=str(robot_cfg.get("tool_name", "xense_force")),
+        tool_name=str(robot_cfg.get("tool_name", "hapticexoteleop")),
         gripper_id=str(robot_cfg.get("gripper_id", "d254505bfaaa")),
         gripper_name=str(robot_cfg.get("gripper_name", "Xense")),
         gripper_block=bool(robot_cfg.get("gripper_block", False)),

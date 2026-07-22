@@ -32,7 +32,7 @@ def main() -> int:
         print(json.dumps({
             "backend": cfg.robot.get("backend", "forcemimic_rizon"),
             "robot_id": cfg.robot.get("robot_id", "Rizon4s-063586"),
-            "tool_name": cfg.robot.get("tool_name", "xense_force"),
+            "tool_name": cfg.robot.get("tool_name", "hapticexoteleop"),
             "left_tcp": states.get("leftRobotTCP"),
             "left_tcp_vel": states.get("leftRobotTCPVel"),
             "left_tcp_wrench": states.get("leftRobotTCPWrench"),

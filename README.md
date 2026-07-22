@@ -59,7 +59,7 @@ configs/deploy_wipedish_sensor_only.yaml
 重点检查这些字段：
 
 - `robot.robot_id`：Rizon 机械臂 ID，默认 `Rizon4s-063586`。
-- `robot.tool_name`：Rizon 工具名，默认 `xense_force`。
+- `robot.tool_name`：Rizon 工具名，默认 `hapticexoteleop`。
 - `robot.gripper_id`、`robot.gripper_name`：Xense 夹爪配置。
 - `publishers.realsense.cameras`：RealSense 序列号和发布 topic 名称。
 - `publishers.xense.sensors`：Xense 序列号和发布 topic 名称。
@@ -131,7 +131,7 @@ logs/
 机器人状态发布使用本目录内的：
 
 ```text
-rdp_deploy/robots/rizon.py 中的 Rizon(tool_name="xense_force")
+rdp_deploy/robots/rizon.py 中的 Rizon(tool_name="hapticexoteleop")
 ```
 
 不会调用 `/move_tcp`、`/move_gripper` 等 HTTP 运动接口，也不会在 `RDP_deploy` 内实现动作下发。
