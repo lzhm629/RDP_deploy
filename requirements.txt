@@ -1,0 +1,26 @@
+numpy==1.26.4
+opencv-python
+scipy
+pyyaml
+omegaconf
+hydra-core
+requests
+pydantic
+loguru
+tqdm
+psutil
+dill
+transforms3d
+pyinstrument
+py_cli_interaction
+fastapi
+uvicorn
+open3d
+
+# Provided by system ROS2 Humble after:
+#   source /opt/ros/humble/setup.bash
+# rclpy
+# message_filters
+# sensor_msgs
+# geometry_msgs
+# cv_bridge

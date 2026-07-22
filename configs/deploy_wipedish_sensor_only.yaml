@@ -1,0 +1,66 @@
+project:
+  name: wipedish_sensor_only
+  output_dir: RDP_deploy/logs
+
+runtime:
+  duration_sec: 10
+  snapshot_timeout_sec: 10
+  expected_fps: 24
+  sync_slop: 0.4
+  sync_queue_size: 40
+  obs_buffer_size: 1024
+
+robot:
+  server_ip: 192.168.2.187
+  server_port: 8092
+  arm: left
+  bimanual: false
+  request_timeout_sec: 3.0
+
+device_mapping:
+  server_ip: 127.0.0.1
+  server_port: 8062
+  request_timeout_sec: 3.0
+
+transforms:
+  enabled: true
+  calibration_path: reactive_diffusion_policy/data/calibration/v6
+
+data_processing:
+  mode: single_arm_two_realsense_two_tactile
+  image_resize_shape: [320, 240]
+  use_6d_rotation: true
+  marker_dimension: 2
+  debug: false
+  pca_param_dict:
+    GelSight:
+      n_components: 15
+      normalize: false
+      mode: Eval
+      store: false
+      transformation_matrix_path: reactive_diffusion_policy/data/PCA_Transform_GelSight/pca_transform_matrix.npy
+      mean_matrix_path: reactive_diffusion_policy/data/PCA_Transform_GelSight/pca_mean_matrix.npy
+    McTac:
+      n_components: 15
+      normalize: false
+      mode: Eval
+      store: false
+      transformation_matrix_path: reactive_diffusion_policy/data/PCA_Transform_McTAC_v1/pca_transform_matrix.npy
+      mean_matrix_path: reactive_diffusion_policy/data/PCA_Transform_McTAC_v1/pca_mean_matrix.npy
+
+sensors:
+  required_observation_keys:
+    - timestamp
+    - left_robot_tcp_pose
+    - left_robot_gripper_width
+    - left_robot_tcp_wrench
+  expected_ros_topics:
+    - /left_tcp_pose
+    - /left_gripper_state
+    - /left_tcp_vel
+    - /left_tcp_wrench
+
+collection:
+  save_snapshot_pickle: true
+  save_stream_numpy: true
+  save_stream_pickle: true

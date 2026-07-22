@@ -1,0 +1,18 @@
+sensors:
+  required_observation_keys:
+    - timestamp
+    - left_robot_tcp_pose
+    - left_robot_gripper_width
+    - left_robot_tcp_wrench
+  expected_ros_topics:
+    - /left_tcp_pose
+    - /left_gripper_state
+    - /left_tcp_vel
+    - /left_tcp_wrench
+
+data_processing:
+  mode: single_arm_two_realsense_two_tactile
+  image_resize_shape: [320, 240]
+  use_6d_rotation: true
+  marker_dimension: 2
+  debug: false
