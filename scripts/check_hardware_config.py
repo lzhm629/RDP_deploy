@@ -2,6 +2,7 @@
 import argparse
 import importlib
 import json
+import warnings
 
 import _bootstrap  # noqa: F401
 
@@ -10,7 +11,12 @@ from rdp_deploy.config import load_config
 
 def _check_import(module_name: str) -> tuple[bool, str]:
     try:
-        importlib.import_module(module_name)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message="Failed to install retiles glfw shim before ezgl import.*",
+            )
+            importlib.import_module(module_name)
     except Exception as exc:  # noqa: BLE001
         return False, f"{type(exc).__name__}: {exc}"
     return True, "ok"
@@ -48,26 +54,6 @@ def _check_realsense_serials(cfg) -> dict:
     return result
 
 
-def _check_xense(cfg) -> dict:
-    result = {
-        "enabled": bool(cfg.devices.xense.get("enabled", False)),
-        "import_ok": None,
-        "configured_serials": [],
-    }
-    if not result["enabled"]:
-        return result
-
-    ok, message = _check_import("xensesdk")
-    result["import_ok"] = ok
-    result["configured_serials"] = [
-        str(sensor.serial_number)
-        for sensor in cfg.devices.xense.get("sensors", [])
-    ]
-    if not ok:
-        result["error"] = message
-    return result
-
-
 def _check_robot(cfg) -> dict:
     result = {
         "enabled": bool(cfg.devices.robot.get("enabled", False)),
@@ -99,8 +85,8 @@ def main() -> int:
     report = {
         "robot": _check_robot(cfg),
         "realsense": _check_realsense_serials(cfg),
-        "xense": _check_xense(cfg),
         "required_observation_keys": list(cfg.observation.get("required_keys", [])),
+        "history_size": int(cfg.observation.get("history_size", 2)),
     }
 
     print(json.dumps(report, indent=2, ensure_ascii=False))
@@ -111,8 +97,6 @@ def main() -> int:
     if report["realsense"].get("enabled"):
         failed = failed or not report["realsense"].get("import_ok")
         failed = failed or bool(report["realsense"].get("missing_serials"))
-    if report["xense"].get("enabled"):
-        failed = failed or not report["xense"].get("import_ok")
     return 1 if failed else 0
 
 

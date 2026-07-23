@@ -48,75 +48,35 @@ def robot_states_to_observation(states: dict, bimanual: bool = False) -> dict:
 
 
 def realsense_to_observation(
-    camera_name: str,
     color_image: np.ndarray,
     resize_shape: tuple[int, int] | None,
 ) -> dict:
-    image_keys = {
-        "D405": "agentview_image",
-        "right_wrist_camera": "right_wrist_img",
+    bgr = resize_bgr_image(color_image, resize_shape)
+    rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+    chw = np.transpose(rgb, (2, 0, 1)).astype(np.float32) / 255.0
+    return {"left_wrist_img": np.ascontiguousarray(chw)}
+
+
+def stack_model_observation(frame_history: list[dict]) -> dict:
+    if not frame_history:
+        raise ValueError("Observation history is empty")
+    model_keys = (
+        "left_wrist_img",
+        "left_robot_tcp_pose",
+        "left_robot_gripper_width",
+        "left_robot_tcp_wrench",
+    )
+    missing = [
+        key
+        for key in model_keys
+        if any(key not in frame for frame in frame_history)
+    ]
+    if missing:
+        raise ValueError(f"Observation history is missing keys: {sorted(set(missing))}")
+    return {
+        key: np.expand_dims(
+            np.stack([frame[key] for frame in frame_history], axis=0),
+            axis=0,
+        ).astype(np.float32, copy=False)
+        for key in model_keys
     }
-    key = image_keys.get(camera_name, f"{camera_name}_image")
-    return {key: resize_bgr_image(color_image, resize_shape)}
-
-
-def xense_observation_keys(sensor_name: str) -> tuple[str, str, str, str]:
-    mappings = {
-        "left_gripper_camera_1": (
-            "left_gripper1_img",
-            "left_gripper1_initial_marker",
-            "left_gripper1_marker_offset",
-            "left_gripper1_force_resultant",
-        ),
-        "left_gripper_camera_2": (
-            "left_gripper2_img",
-            "left_gripper2_initial_marker",
-            "left_gripper2_marker_offset",
-            "left_gripper2_force_resultant",
-        ),
-        "right_gripper_camera_1": (
-            "right_gripper1_img",
-            "right_gripper1_initial_marker",
-            "right_gripper1_marker_offset",
-            "right_gripper1_force_resultant",
-        ),
-        "right_gripper_camera_2": (
-            "right_gripper2_img",
-            "right_gripper2_initial_marker",
-            "right_gripper2_marker_offset",
-            "right_gripper2_force_resultant",
-        ),
-    }
-    if sensor_name not in mappings:
-        raise ValueError(f"Unsupported Xense sensor_name: {sensor_name}")
-    return mappings[sensor_name]
-
-
-def xense_to_observation(
-    sensor_name: str,
-    resize_shape: tuple[int, int] | None,
-    marker_dimension: int,
-    image: np.ndarray | None = None,
-    marker: np.ndarray | None = None,
-    marker_reference: np.ndarray | None = None,
-    force_resultant: np.ndarray | None = None,
-) -> dict:
-    image_key, initial_key, offset_key, force_key = xense_observation_keys(sensor_name)
-    obs = {}
-    if image is not None:
-        obs[image_key] = resize_bgr_image(image, resize_shape)
-    if marker is not None and marker_reference is not None:
-        current = np.asarray(marker, dtype=np.float32).reshape(-1, marker_dimension)
-        initial = np.asarray(marker_reference, dtype=np.float32).reshape(-1, marker_dimension)
-        if current.shape != initial.shape:
-            raise ValueError(
-                f"Xense marker shape changed from {initial.shape} to {current.shape}"
-            )
-        obs[initial_key] = initial.copy()
-        obs[offset_key] = (current - initial).astype(np.float32)
-    if force_resultant is not None:
-        force = np.asarray(force_resultant, dtype=np.float32).reshape(-1)
-        if force.size < 6:
-            raise ValueError(f"Xense force must contain 6 values, got {force.size}")
-        obs[force_key] = force[:6].copy()
-    return obs

@@ -3,7 +3,6 @@ import sys
 import time
 import types
 
-import cv2
 import numpy as np
 
 import _bootstrap  # noqa: F401
@@ -14,7 +13,7 @@ from rdp_deploy.sensors.direct_sensor_collector import PollingReader
 from rdp_deploy.sensors.observation_conversion import (
     realsense_to_observation,
     robot_states_to_observation,
-    xense_to_observation,
+    stack_model_observation,
 )
 
 
@@ -90,23 +89,12 @@ def main() -> int:
         "leftRobotTCPWrench": [0.0] * 6,
         "leftGripperState": [0.04, 0.0],
     }
-    marker_reference = np.zeros((26, 14, 2), dtype=np.float32)
-    marker = marker_reference + 0.25
     image = np.zeros((480, 640, 3), dtype=np.uint8)
-    cv2.circle(image, (320, 240), 40, (0, 255, 0), -1)
+    image[:, :, 0] = 255
 
     observations = {
         "robot": robot_states_to_observation(robot_states),
-        "realsense_D405": realsense_to_observation("D405", image, (320, 240)),
-        "xense_left_gripper_camera_1": xense_to_observation(
-            sensor_name="left_gripper_camera_1",
-            resize_shape=(320, 240),
-            marker_dimension=2,
-            image=image,
-            marker=marker,
-            marker_reference=marker_reference,
-            force_resultant=np.arange(6, dtype=np.float32),
-        ),
+        "realsense_left_wrist": realsense_to_observation(image, (320, 240)),
     }
     now = time.time()
     samples = {
@@ -126,11 +114,24 @@ def main() -> int:
     _assert_shape(merged, "left_robot_tcp_pose", (9,))
     _assert_shape(merged, "left_robot_tcp_wrench", (6,))
     _assert_shape(merged, "left_robot_gripper_width", (1,))
-    _assert_shape(merged, "agentview_image", (240, 320, 3))
-    _assert_shape(merged, "left_gripper1_img", (240, 320, 3))
-    _assert_shape(merged, "left_gripper1_initial_marker", (364, 2))
-    _assert_shape(merged, "left_gripper1_marker_offset", (364, 2))
-    _assert_shape(merged, "left_gripper1_force_resultant", (6,))
+    _assert_shape(merged, "left_wrist_img", (3, 240, 320))
+    if merged["left_wrist_img"].dtype != np.float32:
+        raise AssertionError("Wrist image is not float32")
+    if not np.allclose(merged["left_wrist_img"][2], 1.0):
+        raise AssertionError("BGR-to-RGB conversion failed")
+
+    model_observation = stack_model_observation([merged, merged])
+    if sorted(model_observation) != [
+        "left_robot_gripper_width",
+        "left_robot_tcp_pose",
+        "left_robot_tcp_wrench",
+        "left_wrist_img",
+    ]:
+        raise AssertionError(f"Unexpected model keys: {sorted(model_observation)}")
+    _assert_shape(model_observation, "left_wrist_img", (1, 2, 3, 240, 320))
+    _assert_shape(model_observation, "left_robot_tcp_pose", (1, 2, 9))
+    _assert_shape(model_observation, "left_robot_gripper_width", (1, 2, 1))
+    _assert_shape(model_observation, "left_robot_tcp_wrench", (1, 2, 6))
 
     samples["robot"] = DeviceSample(
         timestamp=now - 1.0,
@@ -143,7 +144,7 @@ def main() -> int:
         raise AssertionError("Out-of-sync samples were not rejected")
 
     print("Direct pipeline: OK")
-    print(f"Observation keys: {sorted(merged)}")
+    print(f"Model observation keys: {sorted(model_observation)}")
     print(f"Synchronized skew: {skew:.6f} sec")
     print(f"Rejected skew: {rejected_skew:.6f} sec")
     print(f"Polling reader samples: {reader_report['count']}")

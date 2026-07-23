@@ -1,12 +1,19 @@
 from __future__ import annotations
 
+import warnings
+
 
 class XenseGripper:
     """Read-only deployment wrapper around the Xense gripper SDK."""
 
     def __init__(self, gripper_id: str, name: str = "Xense", block: bool = False):
         try:
-            from xensegripper import XenseGripper as SDKXenseGripper
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message="Failed to install retiles glfw shim before ezgl import.*",
+                )
+                from xensegripper import XenseGripper as SDKXenseGripper
         except Exception as exc:  # noqa: BLE001
             raise RuntimeError(
                 "xensegripper is required for direct Xense gripper state acquisition."

@@ -21,10 +21,9 @@ robot:
   read_fps: 90
 
 data_processing:
-  mode: single_arm_two_realsense_two_tactile
+  mode: single_arm_one_wrist_camera
   image_resize_shape: [320, 240]
   use_6d_rotation: true
-  marker_dimension: 2
   debug: false
 
 devices:
@@ -35,34 +34,16 @@ devices:
     enabled: true
     cameras:
       - camera_serial_number: "260322274925"
-        camera_name: D405
+        camera_name: left_wrist_camera
         rgb_resolution: [640, 480]
         fps: 30
         stream_fps: 30
         warmup_frames: 30
-  xense:
-    enabled: true
-    sensors:
-      - sensor_name: left_gripper_camera_1
-        serial_number: OG001454
-        mac_address: 1659f0e0dde0
-        cam_id: null
-        config_path: null
-        use_gpu: true
-        fps: 24
-        calibrate_on_start: true
-        read_rectify: true
-        read_marker2d: true
-        read_force_resultant: true
-        read_timestamp: true
 
 observation:
+  history_size: 2
   required_keys:
-    - timestamp
-    - agentview_image
-    - left_gripper1_img
-    - left_gripper1_marker_offset
-    - left_gripper1_force_resultant
+    - left_wrist_img
     - left_robot_tcp_pose
     - left_robot_gripper_width
     - left_robot_tcp_wrench

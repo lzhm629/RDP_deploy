@@ -3,6 +3,7 @@ import argparse
 import importlib
 import os
 import sys
+import warnings
 from importlib import metadata
 
 import _bootstrap  # noqa: F401
@@ -22,7 +23,6 @@ CHECKS = {
     "hardware": [
         ("flexivrdk", "flexivrdk", "1.9.0"),
         ("xensegripper", "xensegripper", "1.3.0"),
-        ("xensesdk", "xensesdk", "2.0.0"),
         ("pyrealsense2", "pyrealsense2", "2.53.1.4623"),
     ],
 }
@@ -44,7 +44,12 @@ def _check_group(group: str) -> list[str]:
         installed_version = _package_version(distribution)
         version_text = f" {installed_version}" if installed_version else ""
         try:
-            module = importlib.import_module(module_name)
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message="Failed to install retiles glfw shim before ezgl import.*",
+                )
+                module = importlib.import_module(module_name)
             module_path = getattr(module, "__file__", None) or "<namespace>"
         except Exception as exc:  # noqa: BLE001
             print(f"[FAIL] {module_name}{version_text}: {type(exc).__name__}: {exc}")

@@ -5,9 +5,9 @@
 当前功能：
 
 - 读取 Flexiv Rizon 状态和 Xense 夹爪宽度。
-- 读取 RealSense 彩色图像。
-- 读取 Xense 图像、Marker 偏移和合力。
+- 读取 RealSense 腕部视觉图像。
 - 按时间戳同步为统一 observation。
+- 缓存连续 2 帧并生成模型输入格式。
 - 保存单帧 snapshot 或连续 stream。
 - 不加载模型，不发送机械臂运动指令。
 
@@ -25,7 +25,6 @@ bash setup_conda.sh
 
 - `flexivrdk==1.9.0`
 - `xensegripper==1.3.0`
-- `xensesdk==2.0.0`
 - `pyrealsense2==2.53.1.4623`
 
 ## 2. 配置
@@ -42,11 +41,18 @@ configs/deploy_wipedish_sensor_only.yaml
 - `robot.tool_name`：Flexiv 控制器中的工具名，当前为 `hapticexoteleop`。
 - `robot.gripper_id`：Xense 夹爪 ID。
 - `devices.robot`：机械臂状态读取开关和频率。
-- `devices.realsense.cameras`：RealSense 序列号、分辨率和帧率。
-- `devices.xense.sensors`：Xense 序列号、MAC、GPU 和输出项。
+- `devices.realsense.cameras`：腕部 RealSense 序列号、分辨率和帧率。
 - `runtime.expected_fps`：observation 生成频率。
 - `runtime.sync_slop`：各设备样本允许的最大时间差。
+- `observation.history_size`：模型输入的连续帧数，当前为 2。
 - `observation.required_keys`：采集结果必须包含的字段。
+
+每个 observation 只包含：
+
+- `left_wrist_img`：`(1, 2, 3, 240, 320)`，RGB，`float32`，范围 `[0, 1]`。
+- `left_robot_tcp_pose`：`(1, 2, 9)`。
+- `left_robot_gripper_width`：`(1, 2, 1)`。
+- `left_robot_tcp_wrench`：`(1, 2, 6)`。
 
 ## 3. 检查
 
