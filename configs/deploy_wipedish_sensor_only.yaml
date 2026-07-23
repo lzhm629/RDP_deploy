@@ -34,7 +34,7 @@ devices:
   realsense:
     enabled: true
     cameras:
-      - camera_serial_number: "335122273041"
+      - camera_serial_number: "260322274925"
         camera_name: D405
         rgb_resolution: [640, 480]
         fps: 30
