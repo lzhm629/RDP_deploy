@@ -21,7 +21,7 @@ CHECKS = {
     ],
     "hardware": [
         ("flexivrdk", "flexivrdk", "1.9.0"),
-        ("r3kit", "r3kit", "0.0.2"),
+        ("xensegripper", "xensegripper", "1.3.0"),
         ("xensesdk", "xensesdk", "2.0.0"),
         ("pyrealsense2", "pyrealsense2", "2.53.1.4623"),
     ],

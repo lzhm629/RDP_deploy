@@ -55,10 +55,9 @@ class ForcemimicRobotClient:
         if tcp_vel.size < 6:
             tcp_vel = np.zeros(6, dtype=np.float64)
 
-        try:
-            gripper_width = float(self.gripper.read())
-        except Exception:
-            gripper_width = 0.0
+        gripper_status = self.gripper.read_status()
+        gripper_width = gripper_status["position"]
+        gripper_force = gripper_status["force"]
 
         return {
             "leftRobotTCP": tcp_pose[:7].tolist(),
@@ -67,7 +66,7 @@ class ForcemimicRobotClient:
             "rightRobotTCPVel": [0.0] * 6,
             "leftRobotTCPWrench": wrench[:6].tolist(),
             "rightRobotTCPWrench": [0.0] * 6,
-            "leftGripperState": [gripper_width, 0.0],
+            "leftGripperState": [gripper_width, gripper_force],
             "rightGripperState": [0.0, 0.0],
         }
 

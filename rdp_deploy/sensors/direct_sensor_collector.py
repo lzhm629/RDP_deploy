@@ -209,44 +209,65 @@ class XenseDevice:
 
 class RealSenseDevice:
     def __init__(self, camera_cfg, resize_shape: tuple[int, int]):
-        from r3kit.devices.camera.realsense.general import RealSenseCamera
+        import pyrealsense2 as rs
 
         width, height = [int(value) for value in camera_cfg.get("rgb_resolution", [640, 480])]
         stream_fps = int(camera_cfg.get("stream_fps", camera_cfg.get("fps", 30)))
-        streams = [("color", -1, width, height, stream_fps)]
+        serial_number = str(camera_cfg.camera_serial_number)
         self.camera_name = str(camera_cfg.camera_name)
         self.resize_shape = resize_shape
-        self.camera = RealSenseCamera(
-            id=str(camera_cfg.camera_serial_number),
-            streams=streams,
-            name=self.camera_name,
+        self.rs = rs
+        self.pipeline = rs.pipeline()
+
+        connected_serials = [
+            device.get_info(rs.camera_info.serial_number)
+            for device in rs.context().query_devices()
+        ]
+        if serial_number not in connected_serials:
+            raise RuntimeError(
+                f"RealSense {self.camera_name} serial {serial_number} not found; "
+                f"connected serials: {connected_serials}"
+            )
+
+        config = rs.config()
+        config.enable_device(serial_number)
+        config.enable_stream(
+            rs.stream.color,
+            width,
+            height,
+            rs.format.bgr8,
+            stream_fps,
         )
+        try:
+            self.pipeline.start(config)
+            warmup_frames = int(camera_cfg.get("warmup_frames", stream_fps))
+            for _ in range(max(0, warmup_frames)):
+                self.pipeline.wait_for_frames()
+        except Exception:
+            self.close()
+            raise
 
     def read(self) -> dict:
-        data = self.camera.get()
-        if not isinstance(data, dict) or "color" not in data:
-            raise RuntimeError(
-                f"RealSense {self.camera_name} returned no color image"
-            )
+        frames = self.pipeline.wait_for_frames()
+        color_frame = frames.get_color_frame()
+        if not color_frame:
+            raise RuntimeError(f"RealSense {self.camera_name} returned no color image")
+        color_image = np.asanyarray(color_frame.get_data()).copy()
         return realsense_to_observation(
             self.camera_name,
-            data["color"],
+            color_image,
             self.resize_shape,
         )
 
     def close(self) -> None:
-        camera = getattr(self, "camera", None)
-        if camera is None:
+        pipeline = getattr(self, "pipeline", None)
+        if pipeline is None:
             return
-        for method_name in ("close", "stop", "stop_streaming"):
-            method = getattr(camera, method_name, None)
-            if callable(method):
-                try:
-                    method()
-                except Exception:
-                    pass
-                break
-        self.camera = None
+        try:
+            pipeline.stop()
+        except Exception:
+            pass
+        self.pipeline = None
 
 
 def merge_device_samples(

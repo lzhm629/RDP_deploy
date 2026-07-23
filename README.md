@@ -24,7 +24,6 @@ bash setup_conda.sh
 脚本只补装项目缺少的普通依赖。以下硬件包沿用克隆环境中的已验证版本，不会被 `requirements.txt` 安装或升级：
 
 - `flexivrdk==1.9.0`
-- `r3kit==0.0.2`
 - `xensegripper==1.3.0`
 - `xensesdk==2.0.0`
 - `pyrealsense2==2.53.1.4623`

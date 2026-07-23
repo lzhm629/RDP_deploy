@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
+import sys
 import time
+import types
 
 import cv2
 import numpy as np
 
 import _bootstrap  # noqa: F401
 
+from rdp_deploy.grippers.xense_gripper import XenseGripper
 from rdp_deploy.sensors.direct_sensor_collector import DeviceSample, merge_device_samples
 from rdp_deploy.sensors.direct_sensor_collector import PollingReader
 from rdp_deploy.sensors.observation_conversion import (
@@ -22,6 +25,48 @@ def _assert_shape(observation: dict, key: str, shape: tuple[int, ...]) -> None:
 
 
 def main() -> int:
+    class _FakeGripper:
+        def __init__(self):
+            self.closed = False
+
+        def get_gripper_status(self):
+            return {
+                "position": 42.5,
+                "velocity": 1.5,
+                "force": 3.0,
+                "temperature": 30.0,
+            }
+
+        def close(self):
+            self.closed = True
+
+    fake_device = _FakeGripper()
+
+    class _FakeXenseGripperSDK:
+        @classmethod
+        def create(cls, mac_addr=None, **kwargs):
+            if mac_addr != "fake-mac":
+                raise AssertionError(f"Unexpected gripper MAC: {mac_addr}")
+            return fake_device
+
+    previous_module = sys.modules.get("xensegripper")
+    sys.modules["xensegripper"] = types.SimpleNamespace(
+        XenseGripper=_FakeXenseGripperSDK
+    )
+    try:
+        gripper = XenseGripper("fake-mac")
+        gripper_status = gripper.read_status()
+        gripper.close()
+    finally:
+        if previous_module is None:
+            sys.modules.pop("xensegripper", None)
+        else:
+            sys.modules["xensegripper"] = previous_module
+    if gripper_status["position"] != 42.5 or gripper_status["force"] != 3.0:
+        raise AssertionError(f"Unexpected gripper status: {gripper_status}")
+    if not fake_device.closed:
+        raise AssertionError("Xense gripper cleanup was not called")
+
     closed = []
     fake_reader = PollingReader(
         name="synthetic",
@@ -102,6 +147,7 @@ def main() -> int:
     print(f"Synchronized skew: {skew:.6f} sec")
     print(f"Rejected skew: {rejected_skew:.6f} sec")
     print(f"Polling reader samples: {reader_report['count']}")
+    print(f"Gripper position/force: {gripper_status['position']}/{gripper_status['force']}")
     return 0
 
 

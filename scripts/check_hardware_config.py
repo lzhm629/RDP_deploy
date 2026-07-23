@@ -32,15 +32,6 @@ def _check_realsense_serials(cfg) -> dict:
     if not ok:
         result["error"] = message
         return result
-    r3kit_ok, r3kit_message = _check_import(
-        "r3kit.devices.camera.realsense.general"
-    )
-    result["r3kit_camera_import_ok"] = r3kit_ok
-    if not r3kit_ok:
-        result["error"] = r3kit_message
-        result["import_ok"] = False
-        return result
-
     import pyrealsense2 as rs
 
     connected = [
@@ -89,14 +80,12 @@ def _check_robot(cfg) -> dict:
         return result
 
     flexiv_ok, flexiv_message = _check_import("flexivrdk")
-    r3kit_ok, r3kit_message = _check_import(
-        "r3kit.devices.gripper.xense.xense"
-    )
+    gripper_ok, gripper_message = _check_import("xensegripper")
     result["imports"] = {
         "flexivrdk": {"ok": flexiv_ok, "message": flexiv_message},
-        "r3kit": {"ok": r3kit_ok, "message": r3kit_message},
+        "xensegripper": {"ok": gripper_ok, "message": gripper_message},
     }
-    result["import_ok"] = flexiv_ok and r3kit_ok
+    result["import_ok"] = flexiv_ok and gripper_ok
     return result
 
 

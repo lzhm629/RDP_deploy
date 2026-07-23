@@ -2,24 +2,50 @@ from __future__ import annotations
 
 
 class XenseGripper:
-    """Thin deployment wrapper around the Xense gripper class."""
+    """Read-only deployment wrapper around the Xense gripper SDK."""
 
     def __init__(self, gripper_id: str, name: str = "Xense", block: bool = False):
         try:
-            from r3kit.devices.gripper.xense.xense import Xense
+            from xensegripper import XenseGripper as SDKXenseGripper
         except Exception as exc:  # noqa: BLE001
             raise RuntimeError(
-                "r3kit is required for the Xense gripper. Install the r3kit Python "
-                "package, or add the r3kit package root to PYTHONPATH on the deployment computer."
+                "xensegripper is required for direct Xense gripper state acquisition."
             ) from exc
 
-        self.gripper = Xense(id=gripper_id, name=name)
-        self.gripper.block(block)
+        self.name = str(name)
+        self.block = bool(block)
+        self.gripper = SDKXenseGripper.create(mac_addr=str(gripper_id))
 
     def read(self) -> float:
-        return float(self.gripper.read())
+        return self.read_status()["position"]
+
+    def read_status(self) -> dict[str, float]:
+        status = self.gripper.get_gripper_status()
+        if not isinstance(status, dict):
+            raise RuntimeError(
+                f"Xense gripper returned invalid status: {type(status).__name__}"
+            )
+        if "position" not in status:
+            raise RuntimeError(
+                f"Xense gripper status has no position field: {sorted(status)}"
+            )
+        return {
+            "position": float(status["position"]),
+            "velocity": float(status.get("velocity", 0.0)),
+            "force": float(status.get("force", 0.0)),
+            "temperature": float(status.get("temperature", 0.0)),
+        }
 
     def close(self) -> None:
-        close = getattr(self.gripper, "close", None)
-        if callable(close):
-            close()
+        gripper = getattr(self, "gripper", None)
+        if gripper is None:
+            return
+        for method_name in ("close", "disconnect"):
+            method = getattr(gripper, method_name, None)
+            if callable(method):
+                try:
+                    method()
+                except Exception:
+                    pass
+                break
+        self.gripper = None

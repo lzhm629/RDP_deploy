@@ -39,6 +39,7 @@ devices:
         rgb_resolution: [640, 480]
         fps: 30
         stream_fps: 30
+        warmup_frames: 30
   xense:
     enabled: true
     sensors:
