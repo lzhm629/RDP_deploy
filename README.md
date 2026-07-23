@@ -18,35 +18,33 @@
 cd RDP_deploy
 ```
 
-创建并激活 venv：
+部署电脑已经从课题组环境克隆出 `rdp_deploy` Conda 环境。激活后只补充项目普通依赖：
 
 ```bash
-python3.12 -m venv rdp_deploy_venv
-source rdp_deploy_venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
+conda activate rdp_deploy
+bash setup_conda.sh
 ```
 
-每次运行前加载 ROS2 Jazzy：
+克隆环境已经包含并验证了以下硬件依赖，不要重新安装或升级：
+
+- `flexivrdk==1.9.0`
+- `r3kit==0.0.2`
+- `xensegripper==1.3.0`
+- `xensesdk==2.0.0`
+- `pyrealsense2==2.53.1.4623`
+
+当前克隆环境使用 Python 3.10，而 Ubuntu 24.04 的 ROS2 Jazzy apt 包使用 Python 3.12。机械臂和硬件 SDK 检查可以在该环境中运行，但 `rclpy` 发布与采集节点只有在 Python ABI 兼容后才能启动。不要用 pip 安装另一个 `rclpy` 来绕过这个问题。
+
+ROS2 Python 包由系统 Jazzy 提供，不写入 `requirements.txt`。检查时执行：
 
 ```bash
+sudo apt install ros-jazzy-rclpy ros-jazzy-message-filters \
+  ros-jazzy-sensor-msgs ros-jazzy-geometry-msgs ros-jazzy-std-msgs
+
+conda activate rdp_deploy
 source /opt/ros/jazzy/setup.bash
-source rdp_deploy_venv/bin/activate
-export PYTHONPATH=$PWD:$PYTHONPATH
+python scripts/check_imports.py --scope ros
 ```
-
-ROS2 Python 包通过 apt 安装，不通过 pip 安装：
-
-```bash
-sudo apt install ros-jazzy-message-filters
-```
-
-如果启用硬件发布节点，还需要在部署电脑安装硬件 SDK：
-
-- RealSense：系统 librealsense 驱动，以及 Python 包 `pyrealsense2`。
-- Xense 传感器：`xensesdk`。
-- Rizon 机械臂：Flexiv RDK Python 包 `flexivrdk`。
-- Xense 夹爪：`r3kit`，或把 r3kit 的 Python 包根目录加入 `PYTHONPATH`。
 
 ## 2. 配置
 
@@ -81,14 +79,17 @@ configs/deploy_wipedish_sensor_only.yaml
 按顺序执行：
 
 ```bash
-python scripts/check_imports.py
+python scripts/check_imports.py --scope core
+python scripts/check_imports.py --scope hardware
 python scripts/check_robot_connection.py --config configs/deploy_wipedish_sensor_only.yaml
 python scripts/check_publisher_config.py --config configs/deploy_wipedish_sensor_only.yaml
 ```
 
-如果发布节点已经启动，可以检查 ROS2 topics：
+`check_robot_connection.py` 不依赖 ROS2，可直接验证 Rizon 和夹爪。完整发布前，必须保证 ROS 检查通过：
 
 ```bash
+source /opt/ros/jazzy/setup.bash
+python scripts/check_imports.py --scope ros
 python scripts/check_ros_topics.py --config configs/deploy_wipedish_sensor_only.yaml
 ```
 
@@ -97,6 +98,8 @@ python scripts/check_ros_topics.py --config configs/deploy_wipedish_sensor_only.
 只启动发布节点：
 
 ```bash
+conda activate rdp_deploy
+source /opt/ros/jazzy/setup.bash
 python scripts/launch_publishers.py --config configs/deploy_wipedish_sensor_only.yaml
 ```
 
