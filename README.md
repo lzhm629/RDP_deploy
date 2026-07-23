@@ -118,7 +118,7 @@ python scripts/validate_offline_control.py \
 默认配置按 `RDP_deploy` 与 `wipedish_7_17` 同级存放：
 
 ```text
-../wipedish_7_17/LDP/checkpoints/latest.ckpt
+../wipedish_7_17/LDP/checkpoints/epoch=0340-train_loss=0.085.ckpt
 ../wipedish_7_17/AT/checkpoints/latest.ckpt
 ```
 

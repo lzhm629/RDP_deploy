@@ -55,7 +55,7 @@ collection:
 
 model:
   # 可通过 validate_offline_control.py 的命令行参数覆盖。
-  checkpoint_path: ../wipedish_7_17/LDP/checkpoints/latest.ckpt
+  checkpoint_path: ../wipedish_7_17/LDP/checkpoints/epoch=0340-train_loss=0.085.ckpt
   at_checkpoint_path: ../wipedish_7_17/AT/checkpoints/latest.ckpt
   device: cuda:0
   use_ema: auto
