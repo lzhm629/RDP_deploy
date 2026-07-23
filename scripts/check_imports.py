@@ -25,6 +25,18 @@ CHECKS = {
         ("xensegripper", "xensegripper", "1.3.0"),
         ("pyrealsense2", "pyrealsense2", "2.53.1.4623"),
     ],
+    "model": [
+        ("torch", "torch", None),
+        ("torchvision", "torchvision", None),
+        ("hydra", "hydra-core", None),
+        ("dill", "dill", None),
+        ("einops", "einops", None),
+        ("diffusers", "diffusers", None),
+        ("zarr", "zarr", None),
+        ("timm", "timm", None),
+        ("peft", "peft", None),
+        ("reactive_diffusion_policy", None, None),
+    ],
 }
 
 

@@ -52,3 +52,15 @@ collection:
   save_snapshot_pickle: true
   save_stream_numpy: true
   save_stream_pickle: true
+
+model:
+  # 可通过 validate_offline_control.py 的命令行参数覆盖。
+  checkpoint_path: null
+  at_checkpoint_path: null
+  device: cuda:0
+  use_ema: auto
+  num_inference_steps: 8
+  dataset_obs_temporal_downsample_ratio: 2
+  decoder_horizon: 32
+  seed: 42
+  print_steps: 5

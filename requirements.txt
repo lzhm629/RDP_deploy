@@ -6,6 +6,18 @@ loguru==0.7.3
 transforms3d
 scipy==1.13.1
 
+# Model inference. Keep the torch/torchvision build from the cloned Conda
+# environment when it already matches the deployment GPU and CUDA runtime.
+torch
+torchvision
+hydra-core
+dill
+einops
+diffusers
+zarr
+timm
+peft
+
 # Keep these hardware packages from the cloned, known-good Conda environment.
 # Do not install or upgrade them through this requirements file:
 # flexivrdk==1.9.0
