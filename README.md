@@ -11,7 +11,7 @@
 - 保存单帧 snapshot 或连续 stream。
 - 加载 RDP checkpoint，离线生成并解码动作。
 - 支持实时 `shadow`、`hold` 和 `execute` 三种部署模式。
-- 夹爪控制不进入运行链路，海绵由人工保持夹紧。
+- 主部署链路不控制夹爪；海绵可在运行前用独立脚本夹紧。
 
 ## 1. 环境
 
@@ -83,6 +83,26 @@ python scripts/check_hardware_config.py \
 python scripts/check_robot_connection.py \
   --config configs/deploy_wipedish_sensor_only.yaml
 ```
+
+单独查看夹爪状态，不发送运动命令：
+
+```bash
+python scripts/clamp_sponge.py
+```
+
+确认海绵已放好后，使用上一步打印的确认口令夹紧：
+
+```bash
+python scripts/clamp_sponge.py \
+  --execute \
+  --position-mm 14.6 \
+  --speed-mm-s 10 \
+  --force-n 10 \
+  --confirm CLAMP_SPONGE_1659F0E0DDE0
+```
+
+位置单位为毫米，力单位为牛顿。脚本只连接 Xense 夹爪，不连接或使能
+Flexiv 机械臂。主部署程序仍然只读取夹爪状态，不下发夹爪动作。
 
 ## 4. 采集
 
