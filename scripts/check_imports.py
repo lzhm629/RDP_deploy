@@ -36,6 +36,7 @@ CHECKS = {
         ("timm", "timm", None),
         ("peft", "peft", None),
         ("reactive_diffusion_policy", None, None),
+        ("rdp_deploy.control.runtime", None, None),
     ],
 }
 

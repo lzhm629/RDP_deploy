@@ -93,9 +93,24 @@ class Rizon:
             self.robot = None
             logger.debug("Robot connection closed")
 
+    def idle(self) -> None:
+        if getattr(self, "robot", None) is not None:
+            self.robot.SwitchMode(self.flexivrdk.Mode.IDLE)
+
+    def status(self) -> dict:
+        robot = self.robot
+        return {
+            "connected": bool(robot is not None and robot.connected()),
+            "operational": bool(robot is not None and robot.operational()),
+            "fault": bool(robot is not None and robot.fault()),
+        }
+
     def force_comp(self, target_pose: np.ndarray) -> None:
+        target = np.asarray(target_pose, dtype=np.float64).reshape(-1)
+        if target.shape != (7,) or not np.all(np.isfinite(target)):
+            raise ValueError(f"Expected finite Flexiv target pose with shape (7,), got {target}")
         self.robot.SendCartesianMotionForce(
-            target_pose,
+            target,
             max_linear_vel=0.02,
             max_angular_vel=0.05,
             max_angular_acc=0.05,

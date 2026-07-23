@@ -202,10 +202,24 @@ def merge_device_samples(
     return observation, skew
 
 
+def select_temporal_history(
+    frames: list[dict],
+    history_size: int,
+    temporal_downsample_ratio: int,
+) -> list[dict]:
+    required = (history_size - 1) * temporal_downsample_ratio + 1
+    if len(frames) < required:
+        raise ValueError(f"Need {required} frames, got {len(frames)}")
+    return frames[-required::temporal_downsample_ratio]
+
+
 class DirectSensorCollector:
-    def __init__(self, cfg):
+    def __init__(self, cfg, robot_client=None):
         self.cfg = resolve_config_paths(cfg)
+        self.robot_client = robot_client
+        self._owns_robot_client = robot_client is None
         self.buffer = ObservationBuffer(maxlen=int(self.cfg.runtime.obs_buffer_size))
+        self.raw_buffer = ObservationBuffer(maxlen=int(self.cfg.runtime.obs_buffer_size))
         self.latency_monitor = LatencyMonitor()
         self.readers: list[PollingReader] = []
         self._stop_event = threading.Event()
@@ -214,9 +228,17 @@ class DirectSensorCollector:
         self._last_sync_skew_sec: float | None = None
         self._aggregate_errors: list[str] = []
         self._history_size = int(self.cfg.observation.get("history_size", 2))
+        self._temporal_downsample_ratio = int(
+            self.cfg.observation.get("temporal_downsample_ratio", 1)
+        )
         if self._history_size <= 0:
             raise ValueError("observation.history_size must be positive")
-        self._frame_history = deque(maxlen=self._history_size)
+        if self._temporal_downsample_ratio <= 0:
+            raise ValueError("observation.temporal_downsample_ratio must be positive")
+        raw_history_size = (
+            (self._history_size - 1) * self._temporal_downsample_ratio + 1
+        )
+        self._frame_history = deque(maxlen=raw_history_size)
         self._build_readers()
 
     def _build_readers(self) -> None:
@@ -227,7 +249,10 @@ class DirectSensorCollector:
         try:
             robot_cfg = self.cfg.devices.robot
             if bool(robot_cfg.get("enabled", False)):
-                client = forcemimic_robot_client_from_config(self.cfg)
+                client = self.robot_client
+                if client is None:
+                    client = forcemimic_robot_client_from_config(self.cfg)
+                    self.robot_client = client
                 self.readers.append(PollingReader(
                     name="robot",
                     fps=float(robot_cfg.get("fps", self.cfg.robot.get("read_fps", 90))),
@@ -235,7 +260,7 @@ class DirectSensorCollector:
                         client.get_current_robot_states(),
                         bimanual=bool(self.cfg.robot.get("bimanual", False)),
                     ),
-                    close_fn=client.close,
+                    close_fn=client.close if self._owns_robot_client else lambda: None,
                 ))
 
             realsense_cfg = self.cfg.devices.realsense
@@ -289,10 +314,21 @@ class DirectSensorCollector:
                         self._sync_skips += 1
                     else:
                         self.latency_monitor.add_observation(observation)
+                        self.raw_buffer.push(observation)
                         self._frame_history.append(observation)
-                        if len(self._frame_history) == self._history_size:
+                        required_history = (
+                            (self._history_size - 1)
+                            * self._temporal_downsample_ratio
+                            + 1
+                        )
+                        if len(self._frame_history) == required_history:
+                            selected_frames = select_temporal_history(
+                                list(self._frame_history),
+                                self._history_size,
+                                self._temporal_downsample_ratio,
+                            )
                             self.buffer.push(
-                                stack_model_observation(list(self._frame_history))
+                                stack_model_observation(selected_frames)
                             )
                 except Exception as exc:  # noqa: BLE001
                     self._aggregate_errors.append(
@@ -322,6 +358,37 @@ class DirectSensorCollector:
                 for reader in self.readers
             },
         }
+
+    def recent_wrenches(self, count: int) -> np.ndarray:
+        frames = self.raw_buffer.last_n(count)
+        if not frames:
+            raise RuntimeError("No synchronized wrench observations are available")
+        values = np.stack(
+            [
+                np.asarray(frame["left_robot_tcp_wrench"], dtype=np.float32)
+                for frame in frames
+            ],
+            axis=0,
+        )
+        if len(values) < count:
+            padding = np.repeat(values[:1], count - len(values), axis=0)
+            values = np.concatenate((padding, values), axis=0)
+        return values
+
+    def assert_devices_fresh(self, max_age_sec: float) -> None:
+        stale = []
+        for reader in self.readers:
+            sample = reader.latest()
+            if sample is None:
+                stale.append(f"{reader.name}=missing")
+                continue
+            age = time.monotonic() - sample.monotonic_time
+            if age > max_age_sec:
+                stale.append(f"{reader.name}={age:.3f}s")
+        if stale:
+            raise RuntimeError(
+                "Stale device samples: " + ", ".join(stale)
+            )
 
     def close(self) -> None:
         self._stop_event.set()

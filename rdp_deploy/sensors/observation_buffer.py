@@ -36,6 +36,12 @@ class ObservationBuffer:
         with self._lock:
             return list(self._items)
 
+    def last_n(self, count: int) -> list[dict]:
+        if count <= 0:
+            return []
+        with self._lock:
+            return list(self._items)[-count:]
+
     def clear(self) -> None:
         with self._lock:
             self._items.clear()

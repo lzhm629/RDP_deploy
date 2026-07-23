@@ -10,7 +10,8 @@
 - 缓存连续 2 帧并生成模型输入格式。
 - 保存单帧 snapshot 或连续 stream。
 - 加载 RDP checkpoint，离线生成并解码动作。
-- 当前控制验证只打印目标，不发送机械臂或夹爪指令。
+- 支持实时 `shadow`、`hold` 和 `execute` 三种部署模式。
+- 夹爪控制不进入运行链路，海绵由人工保持夹紧。
 
 ## 1. 环境
 
@@ -65,6 +66,8 @@ configs/deploy_wipedish_sensor_only.yaml
 python scripts/check_imports.py
 python scripts/check_direct_pipeline.py
 python scripts/check_offline_control.py
+python scripts/check_control_pipeline.py
+python scripts/check_deployment_runtime.py
 ```
 
 检查硬件包、RealSense 序列号和配置：
@@ -138,3 +141,79 @@ python scripts/validate_offline_control.py \
 采集期间只读取状态和传感器数据。Rizon 初始化会连接机械臂、使能、切换工具并执行力传感器清零，但不会发送位姿、关节或夹爪运动命令。
 
 `validate_offline_control.py` 只读取 snapshot 和 checkpoint，不导入硬件控制类、不连接机械臂，也没有命令下发接口。
+
+## 7. 完整部署
+
+完整部署会先加载模型，再初始化硬件。启动脚本会自动优先使用 PyTorch 自带的 cuDNN，同时保留 Flexiv 所需的动态库路径。
+
+### 7.1 Shadow
+
+实时采集、推理、解码和安全检查，但不调用机械臂运动接口：
+
+```bash
+python scripts/run_deployment.py \
+  --config configs/deploy_wipedish_sensor_only.yaml \
+  --mode shadow \
+  --duration 10
+```
+
+`shadow` 是默认模式。它会连接并使能 Rizon、切换工具并执行力传感器清零，但发送的运动命令数始终为 0。
+
+### 7.2 Hold
+
+以 90 Hz 发送启动时读取到的当前 TCP 位姿，用于单独验证笛卡尔控制模式、通信和停止流程：
+
+```bash
+python scripts/run_deployment.py \
+  --config configs/deploy_wipedish_sensor_only.yaml \
+  --mode hold \
+  --duration 3 \
+  --confirm-motion MOVE_RIZON4S_063586
+```
+
+第一次运行 `hold` 时应保持急停可触达，并确认机械臂没有明显位移。任何异常都会停止发送并切换到 `IDLE`。
+
+### 7.3 Execute
+
+只有 `shadow` 和 `hold` 都通过后才运行：
+
+```bash
+python scripts/run_deployment.py \
+  --config configs/deploy_wipedish_sensor_only.yaml \
+  --mode execute \
+  --duration 3 \
+  --confirm-motion MOVE_RIZON4S_063586
+```
+
+首次执行建议保持 `3` 秒。确认轨迹、外力和工作空间日志正常后，再逐步增加持续时间。
+
+### 7.4 控制参数
+
+`deployment` 配置控制运行频率和看门狗：
+
+- 模型控制频率为 24 Hz。
+- Latent Diffusion 推理频率为 6 Hz。
+- 潜动作轨迹每 16 个控制周期更新。
+- 丢弃潜动作前 4 帧进行延迟补偿。
+- Rizon 目标以 90 Hz 发送。
+- observation 或目标超过 0.25 秒未刷新即停止。
+
+`safety` 同时限制：
+
+- 固定笛卡尔工作空间。
+- 相对启动位姿的最大移动范围。
+- 外力、外力矩、目标跳变和 TCP 跟踪误差。
+- 最大线速度 `0.02 m/s` 和最大角速度 `0.05 rad/s`。
+- checkpoint 归一化后的低维观测绝对值，默认上限为 `20`。
+
+安全限制超出时不会裁剪到工作空间边界继续运行，而是立即终止并进入 `IDLE`。速度限制会逐步限速。
+
+### 7.5 日志
+
+每次运行生成：
+
+```text
+logs/deployment_YYYYMMDD_HHMMSS.jsonl
+```
+
+日志包含原始候选目标、安全目标、当前 TCP、wrench、限速状态、推理耗时、计划代数和停止原因。夹爪模型输出不会发送。

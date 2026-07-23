@@ -42,6 +42,7 @@ devices:
 
 observation:
   history_size: 2
+  temporal_downsample_ratio: 2
   required_keys:
     - left_wrist_img
     - left_robot_tcp_pose
@@ -62,5 +63,34 @@ model:
   num_inference_steps: 8
   dataset_obs_temporal_downsample_ratio: 2
   decoder_horizon: 32
+  max_normalized_lowdim_abs: 20.0
   seed: 42
   print_steps: 5
+
+deployment:
+  default_mode: shadow
+  duration_sec: 10
+  startup_timeout_sec: 15
+  control_fps: 24
+  inference_fps: 6
+  robot_send_fps: 90
+  tcp_action_update_interval: 16
+  latency_step: 4
+  observation_timeout_sec: 0.25
+  target_timeout_sec: 0.25
+  print_interval_sec: 1.0
+  motion_confirmation: MOVE_RIZON4S_063586
+
+safety:
+  # 固定工作空间与相对启动位姿包络必须同时满足。
+  workspace_min: [0.45, -0.50, 0.04]
+  workspace_max: [0.85, 0.20, 0.60]
+  max_start_offset: [0.08, 0.08, 0.05]
+  max_force_norm: 30.0
+  max_torque_norm: 5.0
+  max_target_jump_m: 0.02
+  max_target_jump_rad: 0.35
+  max_tracking_error_m: 0.03
+  max_tracking_error_rad: 0.50
+  max_linear_velocity: 0.02
+  max_angular_velocity: 0.05

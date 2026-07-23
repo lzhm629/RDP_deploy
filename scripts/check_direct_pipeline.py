@@ -8,7 +8,11 @@ import numpy as np
 import _bootstrap  # noqa: F401
 
 from rdp_deploy.grippers.xense_gripper import XenseGripper
-from rdp_deploy.sensors.direct_sensor_collector import DeviceSample, merge_device_samples
+from rdp_deploy.sensors.direct_sensor_collector import (
+    DeviceSample,
+    merge_device_samples,
+    select_temporal_history,
+)
 from rdp_deploy.sensors.direct_sensor_collector import PollingReader
 from rdp_deploy.sensors.observation_conversion import (
     realsense_to_observation,
@@ -132,6 +136,18 @@ def main() -> int:
     _assert_shape(model_observation, "left_robot_tcp_pose", (1, 2, 9))
     _assert_shape(model_observation, "left_robot_gripper_width", (1, 2, 1))
     _assert_shape(model_observation, "left_robot_tcp_wrench", (1, 2, 6))
+
+    temporal_frames = [
+        {"index": np.array([index], dtype=np.int64)}
+        for index in range(5)
+    ]
+    selected = select_temporal_history(
+        temporal_frames,
+        history_size=2,
+        temporal_downsample_ratio=2,
+    )
+    if [int(frame["index"][0]) for frame in selected] != [2, 4]:
+        raise AssertionError("Temporal observation downsampling is incorrect")
 
     samples["robot"] = DeviceSample(
         timestamp=now - 1.0,

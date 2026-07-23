@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import threading
 
 import numpy as np
 
@@ -17,6 +18,8 @@ class ForcemimicRobotClient:
     gripper_block: bool = False
 
     def __post_init__(self):
+        self._robot_lock = threading.RLock()
+        self._gripper_lock = threading.RLock()
         self.robot = None
         self.gripper = None
         try:
@@ -31,16 +34,18 @@ class ForcemimicRobotClient:
             raise
 
     def close(self) -> None:
-        if getattr(self, "gripper", None) is not None:
-            try:
-                self.gripper.close()
-            except Exception:
-                pass
-            self.gripper = None
+        with self._gripper_lock:
+            if getattr(self, "gripper", None) is not None:
+                try:
+                    self.gripper.close()
+                except Exception:
+                    pass
+                self.gripper = None
 
-        if getattr(self, "robot", None) is not None:
-            self.robot.close()
-            self.robot = None
+        with self._robot_lock:
+            if getattr(self, "robot", None) is not None:
+                self.robot.close()
+                self.robot = None
 
     def get_current_robot_states(self) -> dict:
         if self.robot is None:
@@ -48,16 +53,22 @@ class ForcemimicRobotClient:
         if self.gripper is None:
             raise RuntimeError("Xense gripper is not connected")
 
-        states = self.robot.robot.states()
-        tcp_pose = np.asarray(states.tcp_pose, dtype=np.float64)
-        wrench = np.asarray(states.ext_wrench_in_tcp, dtype=np.float64)
-        tcp_vel = np.asarray(getattr(states, "tcp_vel", np.zeros(6)), dtype=np.float64)
-        if tcp_vel.size < 6:
-            tcp_vel = np.zeros(6, dtype=np.float64)
+        with self._gripper_lock:
+            gripper_status = self.gripper.read_status()
+            gripper_width = gripper_status["position"]
+            gripper_force = gripper_status["force"]
 
-        gripper_status = self.gripper.read_status()
-        gripper_width = gripper_status["position"]
-        gripper_force = gripper_status["force"]
+        # Read Rizon last so the sample timestamp represents the control state,
+        # even if the fixed gripper status call was briefly delayed.
+        with self._robot_lock:
+            states = self.robot.robot.states()
+            tcp_pose = np.asarray(states.tcp_pose, dtype=np.float64)
+            wrench = np.asarray(states.ext_wrench_in_tcp, dtype=np.float64)
+            tcp_vel = np.asarray(
+                getattr(states, "tcp_vel", np.zeros(6)), dtype=np.float64
+            )
+            if tcp_vel.size < 6:
+                tcp_vel = np.zeros(6, dtype=np.float64)
 
         return {
             "leftRobotTCP": tcp_pose[:7].tolist(),
@@ -72,6 +83,23 @@ class ForcemimicRobotClient:
 
     def get_current_tcp(self) -> list[float]:
         return self.get_current_robot_states()["leftRobotTCP"]
+
+    def send_tcp_target(self, target_pose: np.ndarray) -> None:
+        with self._robot_lock:
+            if self.robot is None:
+                raise RuntimeError("Rizon robot is not connected")
+            self.robot.force_comp(target_pose)
+
+    def idle(self) -> None:
+        with self._robot_lock:
+            if self.robot is not None:
+                self.robot.idle()
+
+    def status(self) -> dict:
+        with self._robot_lock:
+            if self.robot is None:
+                return {"connected": False, "operational": False, "fault": True}
+            return self.robot.status()
 
     def ping(self) -> tuple[bool, str]:
         try:
