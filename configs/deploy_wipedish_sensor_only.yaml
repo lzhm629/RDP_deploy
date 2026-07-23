@@ -44,7 +44,7 @@ devices:
     enabled: true
     sensors:
       - sensor_name: left_gripper_camera_1
-        serial_number: OG001452
+        serial_number: OG001454
         mac_address: 1659f0e0dde0
         cam_id: null
         config_path: null
