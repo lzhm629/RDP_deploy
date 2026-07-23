@@ -25,13 +25,6 @@ CHECKS = {
         ("xensesdk", "xensesdk", "2.0.0"),
         ("pyrealsense2", "pyrealsense2", "2.53.1.4623"),
     ],
-    "ros": [
-        ("rclpy", None, None),
-        ("message_filters", None, None),
-        ("sensor_msgs", None, None),
-        ("geometry_msgs", None, None),
-        ("std_msgs", None, None),
-    ],
 }
 
 
@@ -82,24 +75,21 @@ def main() -> int:
     print(f"Python: {sys.version.split()[0]}")
     print(f"Executable: {sys.executable}")
     print(f"Conda: {os.environ.get('CONDA_PREFIX', '<not active>')}")
-    print(f"ROS_DISTRO: {os.environ.get('ROS_DISTRO', '<not sourced>')}")
 
     groups = list(CHECKS) if args.scope == "all" else [args.scope]
     failed = []
     for group in groups:
         failed.extend(_check_group(group))
 
-    if "ros" in groups and sys.version_info[:2] != (3, 12):
+    if sys.version_info[:2] != (3, 10):
         print(
-            "\n[FAIL] ROS2 Jazzy apt packages require the system Python 3.12 ABI; "
+            "\n[FAIL] The verified hardware environment uses Python 3.10; "
             f"the active interpreter is Python {sys.version_info.major}.{sys.version_info.minor}."
         )
-        failed.append("python_ros_abi")
+        failed.append("python_version")
 
     if failed:
         print("\nFailed checks: " + ", ".join(failed))
-        if "ros" in groups:
-            print("Load ROS2 with: source /opt/ros/jazzy/setup.bash")
         if "core" in groups:
             print("Install project-only dependencies with: python -m pip install -r requirements.txt")
         return 1

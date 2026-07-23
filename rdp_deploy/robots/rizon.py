@@ -31,7 +31,7 @@ class Rizon:
             import flexivrdk
         except Exception as exc:  # noqa: BLE001
             raise RuntimeError(
-                "flexivrdk is required for the Rizon robot publisher. "
+                "flexivrdk is required for direct Rizon state acquisition. "
                 "Install the Flexiv RDK Python package on the deployment computer."
             ) from exc
 

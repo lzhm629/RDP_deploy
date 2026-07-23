@@ -6,8 +6,8 @@ import _bootstrap  # noqa: F401
 
 from rdp_deploy.config import load_config, resolve_config_paths
 from rdp_deploy.diagnostics.shape_checker import missing_observation_keys, observation_report
+from rdp_deploy.sensors.direct_sensor_collector import collect_stream
 from rdp_deploy.sensors.observation_serializer import save_stream
-from rdp_deploy.sensors.ros_sensor_subscriber import collect_stream
 
 
 def main() -> int:
@@ -19,8 +19,12 @@ def main() -> int:
 
     cfg = resolve_config_paths(load_config(args.config))
     duration = float(args.duration or cfg.runtime.duration_sec)
-    observations, runtime_report = collect_stream(cfg, duration)
-    required = list(cfg.sensors.get("required_observation_keys", []))
+    try:
+        observations, runtime_report = collect_stream(cfg, duration)
+    except Exception as exc:  # noqa: BLE001
+        print(f"Direct sensor collection failed: {type(exc).__name__}: {exc}")
+        return 1
+    required = list(cfg.observation.get("required_keys", []))
 
     missing = []
     if observations:

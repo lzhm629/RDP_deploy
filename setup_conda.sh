@@ -16,6 +16,3 @@ python "${SCRIPT_DIR}/scripts/check_imports.py" --scope hardware
 
 echo
 echo "Core and hardware dependency checks completed."
-echo "For ROS2 checks, source Jazzy and run:"
-echo "  source /opt/ros/jazzy/setup.bash"
-echo "  python scripts/check_imports.py --scope ros"

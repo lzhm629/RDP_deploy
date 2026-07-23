@@ -1,13 +1,12 @@
 project:
   name: wipedish_sensor_only
-  output_dir: RDP_deploy/logs
+  output_dir: logs
 
 runtime:
   duration_sec: 10
   snapshot_timeout_sec: 10
   expected_fps: 24
   sync_slop: 0.4
-  sync_queue_size: 40
   obs_buffer_size: 1024
 
 robot:
@@ -19,7 +18,7 @@ robot:
   gripper_block: false
   arm: left
   bimanual: false
-  publish_fps: 90
+  read_fps: 90
 
 data_processing:
   mode: single_arm_two_realsense_two_tactile
@@ -28,21 +27,18 @@ data_processing:
   marker_dimension: 2
   debug: false
 
-publishers:
-  robot_state:
+devices:
+  robot:
     enabled: true
-    fps: ${robot.publish_fps}
+    fps: ${robot.read_fps}
   realsense:
     enabled: true
     cameras:
       - camera_serial_number: "335122273041"
-        camera_type: D400
         camera_name: D405
         rgb_resolution: [640, 480]
         fps: 30
         stream_fps: 30
-        exposure: 120
-        white_balance: 5900
   xense:
     enabled: true
     sensors:
@@ -53,43 +49,22 @@ publishers:
         config_path: null
         use_gpu: true
         fps: 24
-        publish_rectify: true
-        publish_marker2d: true
-        publish_force_resultant: true
-        publish_timestamp: true
+        calibrate_on_start: true
+        read_rectify: true
+        read_marker2d: true
+        read_force_resultant: true
+        read_timestamp: true
 
-sensors:
-  subscribe_topics:
-    - name: /D405/color/image_raw
-      type: sensor_msgs/msg/Image
-    - name: /left_gripper_camera_1/color/image_raw
-      type: sensor_msgs/msg/Image
-    - name: /left_gripper_camera_1/marker_offset/information
-      type: sensor_msgs/msg/PointCloud2
-    - name: /left_gripper_camera_1/force_resultant
-      type: geometry_msgs/msg/WrenchStamped
-    - name: /left_tcp_pose
-      type: geometry_msgs/msg/PoseStamped
-    - name: /left_gripper_state
-      type: sensor_msgs/msg/JointState
-    - name: /left_tcp_vel
-      type: geometry_msgs/msg/TwistStamped
-    - name: /left_tcp_wrench
-      type: geometry_msgs/msg/WrenchStamped
-  required_observation_keys:
+observation:
+  required_keys:
     - timestamp
+    - agentview_image
+    - left_gripper1_img
+    - left_gripper1_marker_offset
+    - left_gripper1_force_resultant
     - left_robot_tcp_pose
     - left_robot_gripper_width
     - left_robot_tcp_wrench
-  expected_ros_topics:
-    - /D405/color/image_raw
-    - /left_gripper_camera_1/color/image_raw
-    - /left_gripper_camera_1/marker_offset/information
-    - /left_gripper_camera_1/force_resultant
-    - /left_tcp_pose
-    - /left_gripper_state
-    - /left_tcp_vel
-    - /left_tcp_wrench
 
 collection:
   save_snapshot_pickle: true
