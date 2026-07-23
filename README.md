@@ -112,10 +112,17 @@ python scripts/collect_sensor_stream.py \
 ```bash
 python scripts/validate_offline_control.py \
   --config configs/deploy_wipedish_sensor_only.yaml \
-  --checkpoint checkpoints/ldp_latest.ckpt \
-  --at-checkpoint checkpoints/at_latest.ckpt \
   --snapshot logs/snapshot_YYYYMMDD_HHMMSS.pkl
 ```
+
+默认配置按 `RDP_deploy` 与 `wipedish_7_17` 同级存放：
+
+```text
+../wipedish_7_17/LDP/checkpoints/latest.ckpt
+../wipedish_7_17/AT/checkpoints/latest.ckpt
+```
+
+如果模型目录改变，可使用 `--checkpoint` 和 `--at-checkpoint` 临时覆盖。
 
 输出包括：
 
