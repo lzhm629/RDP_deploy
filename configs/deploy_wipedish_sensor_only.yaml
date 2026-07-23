@@ -13,7 +13,7 @@ robot:
   backend: forcemimic_rizon
   robot_id: Rizon4s-063586
   tool_name: hapticexoteleop
-  gripper_id: d254505bfaaa
+  gripper_id: 1659f0e0dde0
   gripper_name: Xense
   gripper_block: false
   arm: left
@@ -44,8 +44,8 @@ devices:
     enabled: true
     sensors:
       - sensor_name: left_gripper_camera_1
-        serial_number: OG000482
-        mac_address: d254505bfaaa
+        serial_number: OG001452
+        mac_address: 1659f0e0dde0
         cam_id: null
         config_path: null
         use_gpu: true

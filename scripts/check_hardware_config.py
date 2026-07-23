@@ -74,7 +74,7 @@ def _check_robot(cfg) -> dict:
         "backend": str(cfg.robot.get("backend", "forcemimic_rizon")),
         "robot_id": str(cfg.robot.get("robot_id", "Rizon4s-063586")),
         "tool_name": str(cfg.robot.get("tool_name", "hapticexoteleop")),
-        "gripper_id": str(cfg.robot.get("gripper_id", "d254505bfaaa")),
+        "gripper_id": str(cfg.robot.get("gripper_id", "1659f0e0dde0")),
     }
     if not result["enabled"]:
         return result
