@@ -88,7 +88,7 @@ safety:
   max_start_offset: [0.08, 0.08, 0.05]
   max_force_norm: 30.0
   max_torque_norm: 5.0
-  max_target_jump_m: 0.02
+  max_target_jump_m: 0.03
   max_target_jump_rad: 0.35
   max_tracking_error_m: 0.03
   max_tracking_error_rad: 0.50

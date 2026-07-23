@@ -91,6 +91,7 @@ class _FakeCollector:
 class _FakeClient:
     def __init__(self):
         self.commands = []
+        self.prepare_count = 0
         self.idle_count = 0
         self.closed = False
 
@@ -99,6 +100,9 @@ class _FakeClient:
 
     def send_tcp_target(self, target):
         self.commands.append(np.asarray(target).copy())
+
+    def prepare_cartesian_motion_force(self):
+        self.prepare_count += 1
 
     def idle(self):
         self.idle_count += 1
@@ -178,6 +182,7 @@ def main() -> int:
             assert shadow_report["stats"]["plans"] > 0
             assert shadow_report["stats"]["decoded_actions"] > 0
             assert shadow_client.commands == []
+            assert shadow_client.prepare_count == 0
             assert shadow_client.idle_count == 0
             assert shadow_client.closed
 
@@ -203,6 +208,7 @@ def main() -> int:
             assert hold_report["errors"] == []
             assert hold_report["stats"]["commands_sent"] > 0
             assert len(hold_client.commands) == hold_report["stats"]["commands_sent"]
+            assert hold_client.prepare_count == 1
             assert hold_client.idle_count >= 1
             assert hold_client.closed
 

@@ -427,6 +427,13 @@ class DeploymentRuntime:
                     ),
                 )
 
+                if mode in MOTION_MODES:
+                    client.prepare_cartesian_motion_force()
+                    self.runtime_log.write(
+                        "control_mode_ready",
+                        mode="NRT_CARTESIAN_MOTION_FORCE",
+                    )
+
                 if mode in {"shadow", "execute"}:
                     threads.append(threading.Thread(
                         target=self._planner_worker,

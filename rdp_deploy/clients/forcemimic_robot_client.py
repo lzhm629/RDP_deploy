@@ -90,6 +90,12 @@ class ForcemimicRobotClient:
                 raise RuntimeError("Rizon robot is not connected")
             self.robot.force_comp(target_pose)
 
+    def prepare_cartesian_motion_force(self) -> None:
+        with self._robot_lock:
+            if self.robot is None:
+                raise RuntimeError("Rizon robot is not connected")
+            self.robot.prepare_cartesian_motion_force()
+
     def idle(self) -> None:
         with self._robot_lock:
             if self.robot is not None:

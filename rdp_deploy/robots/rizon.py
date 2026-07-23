@@ -97,6 +97,11 @@ class Rizon:
         if getattr(self, "robot", None) is not None:
             self.robot.SwitchMode(self.flexivrdk.Mode.IDLE)
 
+    def prepare_cartesian_motion_force(self) -> None:
+        if getattr(self, "robot", None) is None:
+            raise RuntimeError("Rizon robot is not connected")
+        self.robot.SwitchMode(self.flexivrdk.Mode.NRT_CARTESIAN_MOTION_FORCE)
+
     def status(self) -> dict:
         robot = self.robot
         return {
