@@ -8,8 +8,8 @@ scipy==1.13.1
 
 # Model inference. Keep the torch/torchvision build from the cloned Conda
 # environment when it already matches the deployment GPU and CUDA runtime.
-torch
-torchvision
+torch==2.11.0
+torchvision==0.26.0
 hydra-core
 dill
 einops
